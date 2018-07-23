@@ -1,6 +1,5 @@
-
 import java.io.File
-
+import org.slf4j.LoggerFactory
 import com.amazonaws.services.s3.AmazonS3
 import com.amazonaws.services.s3.model._
 import com.amazonaws.{AmazonClientException, AmazonServiceException}
@@ -11,6 +10,7 @@ import scala.util.{Failure, Success}
 
 class MtUploader (bucketName: String, removePathSegments: Int){
   val CHUNK_SIZE:Long = 8*1024*1024
+  val logger = LoggerFactory.getLogger(getClass)
 
   def getUploadPath(str: String):String = {
     str.split("/").drop(removePathSegments).mkString("/")
@@ -57,14 +57,14 @@ class MtUploader (bucketName: String, removePathSegments: Int){
     })
   }
 
-  def kickoff_upload(filePath: String)(implicit client:AmazonS3):Future[Unit] = {
+  def kickoff_upload(filePath: String)(implicit client:AmazonS3):Unit = {
     val f:File = new File(filePath)
     if(f.length()<CHUNK_SIZE){
       kickoff_single_upload(f).onComplete({
         case Failure(err)=>
           logger.error(s"Could not upload $filePath", err)
         case Success(result)=>
-          logger.info(s"Successfully uploaded $filePath: ${result.}")
+          logger.info(s"Successfully uploaded $filePath: ${result.getETag}")
       })
     } else {
       kickoff_mt_upload(f).onComplete({
