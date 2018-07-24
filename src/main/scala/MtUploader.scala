@@ -20,8 +20,9 @@ class MtUploader (bucketName: String, removePathSegments: Int){
   def kickoff_single_upload(toUpload:File, uploadPath:String)(implicit client:AmazonS3, exec:ExecutionContext):Future[PutObjectResult] = Future {
     logger.info(s"${toUpload.getCanonicalPath}: Starting upload")
     val putRequest = new PutObjectRequest(bucketName, uploadPath, toUpload)
-    client.putObject(putRequest)
+    val result=client.putObject(putRequest)
     logger.info(s"${toUpload.getCanonicalPath}: Finished upload")
+    result
   }
 
   def mt_upload_part(toUpload:File, partNumber:Int, fileOffset:Long, uploadPath:String, uploadId: String, chunkSize: Long)(implicit client:AmazonS3,  exec:ExecutionContext):Future[UploadPartResult] = Future {
