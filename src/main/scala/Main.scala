@@ -3,13 +3,10 @@ import java.io.File
 import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
 import org.slf4j.LoggerFactory
 
-import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.ExecutionContext
 import java.util.concurrent.Executors
 
 import com.amazonaws.ClientConfiguration
-import com.sun.net.httpserver.Authenticator.Failure
-
-import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
 object Main extends App {
@@ -64,7 +61,7 @@ object Main extends App {
     logger.info("========================================================================")
     logger.info(s"Removing $pathSegments from paths for upload")
     logger.info(s"Uploading to $destBucket")
-    logger.info(s"Really delte is $reallyDelete")
+    logger.info(s"Really delete is $reallyDelete")
 
     val lp = new ListParser("to_flush.lst")
 
