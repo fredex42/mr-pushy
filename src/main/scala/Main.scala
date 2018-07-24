@@ -43,7 +43,7 @@ object Main extends App {
     val logger = LoggerFactory.getLogger(getClass)
     lazy val clientConfg:ClientConfiguration = new ClientConfiguration()
     clientConfg.setMaxConnections(maxThreads)
-    clientConfg.setRequestTimeout(10000)
+    clientConfg.setRequestTimeout(120000)
     clientConfg.setUseReaper(true)
     lazy implicit val s3conn: AmazonS3 = AmazonS3ClientBuilder.standard().withClientConfiguration(clientConfg).build()
 
