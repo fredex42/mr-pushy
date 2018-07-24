@@ -6,6 +6,8 @@ import org.slf4j.LoggerFactory
 import scala.concurrent.{Await, ExecutionContext, Future}
 import java.util.concurrent.Executors
 
+import com.amazonaws.ClientConfiguration
+
 import scala.concurrent.duration._
 
 object Main extends App {
@@ -24,7 +26,9 @@ object Main extends App {
     implicit val exec:ExecutionContext = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(maxThreads))
 
     val logger = LoggerFactory.getLogger(getClass)
-    lazy implicit val s3conn: AmazonS3 = AmazonS3ClientBuilder.defaultClient()
+    lazy val clientConfg:ClientConfiguration = new ClientConfiguration()
+    clientConfg.setMaxConnections((maxThreads*1.5).toInt)
+    lazy implicit val s3conn: AmazonS3 = AmazonS3ClientBuilder.standard().withClientConfiguration(clientConfg).build()
 
     lazy val destBucket = System.getProperty("destBucket")
     if (destBucket == null) {
