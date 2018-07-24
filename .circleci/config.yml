@@ -4,8 +4,10 @@ defaults: &defaults
   environment:
     CIRCLE_ARTIFACTS: /tmp/circleci-artifacts
     CIRCLE_TEST_REPORTS: /tmp/circleci-test-results
+    JVM_OPTS: -Xmx3200m
+    TERM: dumb
   docker:
-    - image: andyg42/generic-centos-sbt:2
+    - image: andyg42/generic-centos-sbt:3
 
 version: 2
 jobs:
@@ -16,18 +18,18 @@ jobs:
     - restore_cache:
         keys:
         # This branch if available
-        - v1-dep-{{ .Branch }}-
+        - v1-dep-{{ checksum "build.sbt" }}
         # Default branch if not
-        - v1-dep-master-
+        - v1-dep-{{ .Branch }}-
         # Any branch if there are none on the default branch - this should be unnecessary if you have your default branch configured correctly
         - v1-dep-
-    - run: sbt test:compile
+    - run: cat /dev/null | sbt test:compile
     - save_cache:
         key: v1-dep-{{ .Branch }}-{{ epoch }}
         paths:
         - ~/.ivy2
         - target
-    - run: sbt test
+    - run: cat /dev/null | sbt test
     # Save test results
     - store_test_results:
         path: /tmp/circleci-test-results
@@ -38,7 +40,7 @@ jobs:
         path: /tmp/circleci-test-results
 
     ### deployment
-    - run: sbt rpm:packageBin
+    - run: cat /dev/null | sbt rpm:packageBin
     - run: aws s3 cp target/rpm/RPMS/noarch/upload_flush_list_mt-1.0.0-${CIRCLE_BUILD_NUM}.noarch.rpm s3://gnm-multimedia-deployables/upload_flush_list/${CIRCLE_BUILD_NUM}/upload_flush_list.noarch.rpm
 
 workflows:
