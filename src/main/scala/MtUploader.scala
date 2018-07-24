@@ -84,6 +84,7 @@ class MtUploader (bucketName: String, removePathSegments: Int){
   }
 
   private def internal_do_upload(f:File, uploadPath:String)(implicit client:AmazonS3, exec:ExecutionContext):Future[UploadResult] = {
+    logger.info(s"${f.getCanonicalPath}: Starting upload")
     if(f.length()<CHUNK_SIZE){
       val uploadFuture = kickoff_single_upload(f, uploadPath)
       uploadFuture.onComplete({

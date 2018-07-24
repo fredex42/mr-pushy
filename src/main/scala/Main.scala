@@ -73,13 +73,13 @@ object Main extends App {
       } else {
         uploader.kickoff_upload(filePath).map(uploadResult => {
           if(uploadResult.uploadType==UploadResultType.AlreadyThere) alreadyUploadedCounter+=1
-          logger.debug(s"upload completed successfully (${uploadResult.uploadType.toString}), calculating etag")
+          logger.info(s"$filePath: upload completed successfully (${uploadResult.uploadType.toString}), calculating etag")
           EtagCalculator.propertiesForFile(new File(filePath), 8 * 1024 * 1024).map(localFileProperties => {
-            logger.debug("etag calculated, checking if deletable")
+            logger.debug(s"$filePath: etag calculated, checking if deletable")
             FileChecker.canDelete(destBucket, uploadResult.uploadedPath, localFileProperties).map({
               case true =>
                 successfulCounter+=1
-                logger.info(s"Can delete $filePath")
+                logger.info(s"$filePath: Can delete")
               case false =>
                 failedCounter+=1
                 logger.warn(s"$filePath: UPLOAD FAILED, removing remote path")
