@@ -44,14 +44,11 @@ class MtUploader (bucketName: String, removePathSegments: Int){
     * @param client AmazonS3 client
     * @return Sequence of Futures of UploadPartReasult, one for each chunk.
     */
-  def kickoff_mt_upload(toUpload:File,uploadPath:String)(implicit client:AmazonS3, exec:ExecutionContext):Future[CompleteMultipartUploadResult] = {
-    logger.info(s"${toUpload.getCanonicalPath}: Starting multipart upload")
-    val mpRequest = new InitiateMultipartUploadRequest(bucketName, uploadPath)
-    val mpResponse = client.initiateMultipartUpload(mpRequest)
+  def kickoff_mt_upload(toUpload:File,uploadPath:String, uploadId:String)(implicit client:AmazonS3, exec:ExecutionContext):Future[Seq[UploadPartResult]] = {
 
     val chunks = math.ceil(toUpload.length()/CHUNK_SIZE).toInt
     def nextChunkPart(currentChunk:Int, lastChunk:Int, parts:Seq[Future[UploadPartResult]]):Seq[Future[UploadPartResult]] = {
-      val updatedParts:Seq[Future[UploadPartResult]] = parts :+ mt_upload_part(toUpload, currentChunk, currentChunk * CHUNK_SIZE, uploadPath, mpResponse.getUploadId, CHUNK_SIZE)
+      val updatedParts:Seq[Future[UploadPartResult]] = parts :+ mt_upload_part(toUpload, currentChunk, currentChunk * CHUNK_SIZE, uploadPath, uploadId, CHUNK_SIZE)
       if(currentChunk<lastChunk)
         nextChunkPart(currentChunk+1, lastChunk, updatedParts)
       else
@@ -61,32 +58,7 @@ class MtUploader (bucketName: String, removePathSegments: Int){
 
     val uploadPartsFutures = nextChunkPart(0,chunks-1,Seq()) :+ mt_upload_part(toUpload, chunks+1, chunks*CHUNK_SIZE, uploadPath, mpResponse.getUploadId, finalChunkSize)
 
-    val uploadCompletedFuture = Future.sequence(uploadPartsFutures)
-    uploadCompletedFuture.onComplete({
-      case Failure(err)=>
-        logger.error(s"$uploadPath: Unable to upload, cancelling multipart upload", err)
-        try {
-          val rq = new AbortMultipartUploadRequest(bucketName, uploadPath, mpResponse.getUploadId)
-          client.abortMultipartUpload(rq)
-        } catch {
-          case ex:Throwable=>
-            logger.error(s"$uploadPath: Could not abort multipart upload", err)
-        }
-      case Success(seq)=>
-        logger.debug(s"$uploadPath: parts were successfully")
-    })
-
-    uploadCompletedFuture.map(uploadPartSequence=>{
-      val partEtags = uploadPartSequence.map(_.getPartETag)
-
-      val completeRq = new CompleteMultipartUploadRequest()
-        .withUploadId(mpResponse.getUploadId)
-        .withBucketName(bucketName)
-        .withKey(uploadPath)
-        .withPartETags(partEtags.asJava)
-      logger.info(s"${toUpload.getCanonicalPath}: Finished multipart upload")
-      client.completeMultipartUpload(completeRq)
-    })
+    Future.sequence(uploadPartsFutures)
   }
 
   private def internal_do_upload(f:File, uploadPath:String, uploadExecContext:ExecutionContext)(implicit client:AmazonS3, exec:ExecutionContext):Future[UploadResult] = {
@@ -100,14 +72,40 @@ class MtUploader (bucketName: String, removePathSegments: Int){
       })
       uploadFuture.map(result=>UploadResult(UploadResultType.Single,uploadPath, Some(result),None))
     } else {
-      val uploadFuture = kickoff_mt_upload(f, uploadPath)(client, uploadExecContext)
-      uploadFuture.onComplete({
-        case Failure(err)=>
-          logger.error(s"Could not upload ${f.getCanonicalPath}", err)
-        case Success(seq)=>
-          logger.info(s"Successfully uploaded ${f.getCanonicalPath}")
+      logger.info(s"${f.getCanonicalPath}: Starting multipart upload")
+      val mpRequest = new InitiateMultipartUploadRequest(bucketName, uploadPath)
+      val mpResponse = client.initiateMultipartUpload(mpRequest)
+
+      val uploadFuture = kickoff_mt_upload(f, uploadPath, mpResponse.getUploadId)(client, uploadExecContext)
+
+      /* these will pick up the default execution context not the special one for uploading */
+      val completionFuture= uploadFuture.map(uploadPartSequence=>{
+        val partEtags = uploadPartSequence.map(_.getPartETag)
+
+        val completeRq = new CompleteMultipartUploadRequest()
+          .withUploadId(mpResponse.getUploadId)
+          .withBucketName(bucketName)
+          .withKey(uploadPath)
+          .withPartETags(partEtags.asJava)
+        logger.info(s"${f.getCanonicalPath}: Finished multipart upload")
+        client.completeMultipartUpload(completeRq)
       })
-      uploadFuture.map(result=>{
+
+      completionFuture.onComplete({
+        case Failure(err)=>
+          logger.error(s"$uploadPath: Unable to upload, cancelling multipart upload", err)
+          try {
+            val rq = new AbortMultipartUploadRequest(bucketName, uploadPath, mpResponse.getUploadId)
+            client.abortMultipartUpload(rq)
+          } catch {
+            case ex:Throwable=>
+              logger.error(s"$uploadPath: Could not abort multipart upload", err)
+          }
+        case Success(seq)=>
+          logger.debug(s"$uploadPath: parts were successfully")
+      })
+
+      completionFuture.map(result=>{
         logger.debug("upload completed, returning information")
         UploadResult(UploadResultType.Multipart,uploadPath, None,Some(result))
       })
