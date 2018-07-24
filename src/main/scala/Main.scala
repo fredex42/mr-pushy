@@ -61,6 +61,7 @@ object Main extends App {
     var alreadyUploadedCounter=0
     var successfulCounter=0
     var failedCounter=0
+    var n=0
 
     lp.foreach { (projectId: String, filePath: String) =>
       val fileref = new File(filePath)
@@ -71,6 +72,7 @@ object Main extends App {
         zeroLengthCounter+=1
         if(!hideNotFound) logger.warn(s"$filePath is zero length, skipping")
       } else {
+        n+=1
         uploader.kickoff_upload(filePath).map(uploadResult => {
           if(uploadResult.uploadType==UploadResultType.AlreadyThere) alreadyUploadedCounter+=1
           logger.info(s"$filePath: upload completed successfully (${uploadResult.uploadType.toString}), calculating etag")
@@ -86,6 +88,11 @@ object Main extends App {
             })
           }
           )
+        if(n>50){
+          //sleep for 10s to make the upload threads kick in, every 50 items
+          n=0
+          Thread.sleep(10000)
+        }
         })
       }
       }
