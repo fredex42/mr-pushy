@@ -9,6 +9,7 @@ scalaVersion := "2.12.6"
 libraryDependencies ++= Seq(
   // https://mvnrepository.com/artifact/com.amazonaws/aws-java-sdk-s3
   "com.amazonaws" % "aws-java-sdk-s3" % "1.11.372",
+  "com.amazonaws" % "aws-java-sdk-cloudwatch" % "1.11.372",
   // https://mvnrepository.com/artifact/ch.qos.logback/logback-classic
   "ch.qos.logback" % "logback-classic" % "1.2.3",
   // https://mvnrepository.com/artifact/ch.qos.logback/logback-core
