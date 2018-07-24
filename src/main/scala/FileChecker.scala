@@ -15,7 +15,7 @@ object FileChecker {
     * @param s3Client implicitly provided AmazonS3 client object
     * @return a Future containing either True (remote matches, local can be deleted) or False (remote does not match)
     */
-  def canDelete(remoteBucket: String, remotePath:String, localFileProperties: LocalFileProperties)(implicit s3Client: AmazonS3):Future[Boolean] = Future {
+  def canDelete(remoteBucket: String, remotePath:String, localFileProperties: LocalFileProperties)(implicit s3Client: AmazonS3):Boolean = {
     val s3Meta = s3Client.getObjectMetadata(remoteBucket, remotePath)
 
     logger.debug(s"$remotePath: Local etag is ${localFileProperties.eTag}, remote is ${s3Meta.getETag}")

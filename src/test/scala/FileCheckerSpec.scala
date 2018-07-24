@@ -23,7 +23,7 @@ class FileCheckerSpec extends Specification with Mockito {
       when(mockedS3Client.getObjectMetadata(anyString,anyString)).thenReturn(fakeMeta)
 
       val fakeLocalData = LocalFileProperties("da8186debb05658c72e0b58cfddf14ad", 1234567)
-      Await.result(FileChecker.canDelete("test-bucket","/path/to/test/key", fakeLocalData), 1 seconds) shouldEqual true
+      FileChecker.canDelete("test-bucket","/path/to/test/key", fakeLocalData) shouldEqual true
       there was one(mockedS3Client.getObjectMetadata("test-bucket","/path/to/test/key"))
     }
 
@@ -36,7 +36,7 @@ class FileCheckerSpec extends Specification with Mockito {
       when(mockedS3Client.getObjectMetadata(anyString,anyString)).thenReturn(fakeMeta)
 
       val fakeLocalData = LocalFileProperties("da8186debb05658c72e0b58cfddf14ad", 1234567)
-      Await.result(FileChecker.canDelete("test-bucket","/path/to/test/key", fakeLocalData), 1 seconds) shouldEqual false
+      FileChecker.canDelete("test-bucket","/path/to/test/key", fakeLocalData) shouldEqual false
       there was one(mockedS3Client.getObjectMetadata("test-bucket","/path/to/test/key"))
     }
 
@@ -49,7 +49,7 @@ class FileCheckerSpec extends Specification with Mockito {
       when(mockedS3Client.getObjectMetadata(anyString,anyString)).thenReturn(fakeMeta)
 
       val fakeLocalData = LocalFileProperties("da8186debb05658c72e0b58cfddf14ad", 1234567)
-      Await.result(FileChecker.canDelete("test-bucket","/path/to/test/key", fakeLocalData), 1 seconds) shouldEqual false
+      FileChecker.canDelete("test-bucket","/path/to/test/key", fakeLocalData) shouldEqual false
       there was one(mockedS3Client.getObjectMetadata("test-bucket","/path/to/test/key"))
     }
   }

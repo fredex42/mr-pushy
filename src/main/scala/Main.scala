@@ -105,12 +105,12 @@ object Main extends App {
         false
       } else {
         n+=1
-        uploader.kickoff_upload(filePath)(s3conn, uploadExecContext).map(uploadResult => {
+        uploader.kickoff_upload(filePath, uploadExecContext).map(uploadResult => {
           if(uploadResult.uploadType==UploadResultType.AlreadyThere) alreadyUploadedCounter+=1
           logger.info(s"$filePath: upload completed successfully (${uploadResult.uploadType.toString}), calculating etag")
           EtagCalculator.propertiesForFile(new File(filePath), 8 * 1024 * 1024)(exec).map(localFileProperties => {
             logger.debug(s"$filePath: etag calculated, checking if deletable")
-            FileChecker.canDelete(destBucket, uploadResult.uploadedPath, localFileProperties).map({
+            FileChecker.canDelete(destBucket, uploadResult.uploadedPath, localFileProperties) match {
               case true =>
                 successfulCounter+=1
                 if(reallyDelete) {
@@ -128,13 +128,13 @@ object Main extends App {
                   case Failure(err)=>
                     logger.error(s"$filePath: could not delete remote file", err)
                 }
-            })
+            }
           }
           )
           if(limit.isDefined){
             if(n>limit.get){
               logger.info(s"Already triggered $n items, stopping")
-              return true
+              true
             }
           }
         })

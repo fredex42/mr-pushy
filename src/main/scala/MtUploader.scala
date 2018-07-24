@@ -45,7 +45,6 @@ class MtUploader (bucketName: String, removePathSegments: Int){
     * @return Sequence of Futures of UploadPartReasult, one for each chunk.
     */
   def kickoff_mt_upload(toUpload:File,uploadPath:String)(implicit client:AmazonS3, exec:ExecutionContext):Future[CompleteMultipartUploadResult] = {
-    Thread.sleep(1000)
     logger.info(s"${toUpload.getCanonicalPath}: Starting multipart upload")
     val mpRequest = new InitiateMultipartUploadRequest(bucketName, uploadPath)
     val mpResponse = client.initiateMultipartUpload(mpRequest)
@@ -90,9 +89,9 @@ class MtUploader (bucketName: String, removePathSegments: Int){
     })
   }
 
-  private def internal_do_upload(f:File, uploadPath:String)(implicit client:AmazonS3, exec:ExecutionContext):Future[UploadResult] = {
+  private def internal_do_upload(f:File, uploadPath:String, uploadExecContext:ExecutionContext)(implicit client:AmazonS3, exec:ExecutionContext):Future[UploadResult] = {
     if(f.length()<CHUNK_SIZE){
-      val uploadFuture = kickoff_single_upload(f, uploadPath)
+      val uploadFuture = kickoff_single_upload(f, uploadPath)(client, uploadExecContext)
       uploadFuture.onComplete({
         case Failure(err)=>
           logger.error(s"Could not upload ${f.getCanonicalPath}", err)
@@ -101,8 +100,7 @@ class MtUploader (bucketName: String, removePathSegments: Int){
       })
       uploadFuture.map(result=>UploadResult(UploadResultType.Single,uploadPath, Some(result),None))
     } else {
-      logger.debug(s"${f.getCanonicalPath}: Starting multipart upload")
-      val uploadFuture = kickoff_mt_upload(f, uploadPath)
+      val uploadFuture = kickoff_mt_upload(f, uploadPath)(client, uploadExecContext)
       uploadFuture.onComplete({
         case Failure(err)=>
           logger.error(s"Could not upload ${f.getCanonicalPath}", err)
@@ -117,7 +115,7 @@ class MtUploader (bucketName: String, removePathSegments: Int){
 
   }
 
-  def kickoff_upload(filePath: String)(implicit client:AmazonS3,  exec:ExecutionContext):Future[UploadResult] = {
+  def kickoff_upload(filePath: String, uploadExecContext: ExecutionContext)(implicit client:AmazonS3,  exec:ExecutionContext):Future[UploadResult] = {
     val f:File = new File(filePath)
     val uploadPath = getUploadPath(f.getAbsolutePath)
     logger.debug(s"$filePath: kickoff to $uploadPath")
@@ -129,7 +127,7 @@ class MtUploader (bucketName: String, removePathSegments: Int){
       case ex:AmazonS3Exception=>
         if(ex.getMessage.contains("404 Not Found")) {
           logger.debug(s"s3://$bucketName/$uploadPath does not currently exist, proceeding to upload")
-          internal_do_upload(f, uploadPath)
+          internal_do_upload(f, uploadPath, uploadExecContext)
         } else {
           throw ex
         }
