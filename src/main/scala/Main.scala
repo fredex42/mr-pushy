@@ -97,9 +97,11 @@ object Main extends App {
       if(! fileref.exists()){
         notFoundCounter+=1
         if(!hideNotFound) logger.warn(s"$filePath does not exist, skipping")
+        false
       } else if(fileref.length()==0) {
         zeroLengthCounter+=1
         if(!hideNotFound) logger.warn(s"$filePath is zero length, skipping")
+        false
       } else {
         n+=1
         uploader.kickoff_upload(filePath).map(uploadResult => {
@@ -128,16 +130,14 @@ object Main extends App {
             })
           }
           )
-          limit match {
-            case Some(lim)=>
-              if(n>lim){
-                logger.info(s"Already triggered $n items, stopping")
-                return
-              }
-            case None=>
-
+          if(limit.isDefined){
+            if(n>limit.get){
+              logger.info(s"Already triggered $n items, stopping")
+              return true
+            }
           }
         })
+        false
       }
       }
       logger.info("Completed iterating list")
