@@ -7,8 +7,10 @@ import scala.concurrent.{Await, ExecutionContext, Future}
 import java.util.concurrent.Executors
 
 import com.amazonaws.ClientConfiguration
+import com.sun.net.httpserver.Authenticator.Failure
 
 import scala.concurrent.duration._
+import scala.util.{Failure, Success}
 
 object Main extends App {
   override def main(args: Array[String]): Unit = {
@@ -21,6 +23,13 @@ object Main extends App {
         48
       case str: String =>
         str.toInt
+    }
+
+    lazy val reallyDelete = System.getProperty("reallyDelete") match {
+      case null =>
+        false
+      case str: String=>
+        str == "true"
     }
 
     implicit val exec:ExecutionContext = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(maxThreads))
@@ -55,6 +64,7 @@ object Main extends App {
     logger.info("========================================================================")
     logger.info(s"Removing $pathSegments from paths for upload")
     logger.info(s"Uploading to $destBucket")
+    logger.info(s"Really delte is $reallyDelete")
 
     val lp = new ListParser("to_flush.lst")
 
@@ -85,10 +95,21 @@ object Main extends App {
             FileChecker.canDelete(destBucket, uploadResult.uploadedPath, localFileProperties).map({
               case true =>
                 successfulCounter+=1
-                logger.info(s"$filePath: Can delete")
+                if(reallyDelete) {
+                  logger.info(s"$filePath: will delete")
+                  fileref.delete()
+                } else {
+                  logger.info(s"$filePath: can be deleted. Set reallyDelete property to 'true'")
+                }
               case false =>
                 failedCounter+=1
                 logger.warn(s"$filePath: UPLOAD FAILED, removing remote path")
+                uploader.delete_failed_upload(filePath) match {
+                  case Success(u)=>
+                    logger.debug(s"$filePath: remote file deleted")
+                  case Failure(err)=>
+                    logger.error(s"$filePath: could not delete remote file", err)
+                }
             })
           }
           )

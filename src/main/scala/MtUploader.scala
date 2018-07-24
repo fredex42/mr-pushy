@@ -7,7 +7,7 @@ import com.amazonaws.{AmazonClientException, AmazonServiceException}
 
 import collection.JavaConverters._
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success}
+import scala.util.{Failure, Success, Try}
 
 class MtUploader (bucketName: String, removePathSegments: Int){
   val CHUNK_SIZE:Long = 8*1024*1024
@@ -44,6 +44,7 @@ class MtUploader (bucketName: String, removePathSegments: Int){
     * @return Sequence of Futures of UploadPartReasult, one for each chunk.
     */
   def kickoff_mt_upload(toUpload:File,uploadPath:String)(implicit client:AmazonS3, exec:ExecutionContext):Future[CompleteMultipartUploadResult] = {
+    Thread.sleep(1000)
     logger.info(s"${toUpload.getCanonicalPath}: Starting multipart upload")
     val mpRequest = new InitiateMultipartUploadRequest(bucketName, uploadPath)
     val mpResponse = client.initiateMultipartUpload(mpRequest)
@@ -114,6 +115,7 @@ class MtUploader (bucketName: String, removePathSegments: Int){
     }
 
   }
+
   def kickoff_upload(filePath: String)(implicit client:AmazonS3,  exec:ExecutionContext):Future[UploadResult] = {
     val f:File = new File(filePath)
     val uploadPath = getUploadPath(f.getAbsolutePath)
@@ -131,5 +133,9 @@ class MtUploader (bucketName: String, removePathSegments: Int){
           throw ex
         }
     }
+  }
+
+  def delete_failed_upload(filePath:String)(implicit  client:AmazonS3, exec: ExecutionContext):Try[Unit] = {
+    Try { client.deleteObject(bucketName, getUploadPath(filePath)) }
   }
 }
