@@ -26,6 +26,7 @@ class MtUploader (bucketName: String, removePathSegments: Int){
   }
 
   def mt_upload_part(toUpload:File, partNumber:Int, fileOffset:Long, uploadPath:String, uploadId: String, chunkSize: Long)(implicit client:AmazonS3,  exec:ExecutionContext):Future[UploadPartResult] = Future {
+    logger.debug(s"${toUpload.getCanonicalPath}: uploading part $partNumber")
     val rq = new UploadPartRequest()
       .withUploadId(uploadId)
       .withBucketName(bucketName)
