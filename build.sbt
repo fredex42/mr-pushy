@@ -24,14 +24,13 @@ libraryDependencies ++= Seq(
   "org.mockito" % "mockito-all" % "1.10.19" % Test
 )
 
-version in Rpm := s"${version.value}-${sys.env.getOrElse("CIRCLE_BUILD_NUM","SNAPSHOT")}"
 rpmVendor := "theguardian"
 rpmLicense := Some("GPLv3")
 
 lazy val app = (project in file("."))
   .enablePlugins(JavaServerAppPackaging, RpmPlugin)
   .settings(
-
+    version in Rpm := s"${version.value}-${sys.env.getOrElse("CIRCLE_BUILD_NUM","SNAPSHOT")}",
     mainClass in Compile := Some("Main")
   )
 

@@ -8,7 +8,7 @@ import scala.concurrent.duration._
 
 object Main extends App {
   override def main(args: Array[String]): Unit = {
-    //implicit val s3conn:AmazonS3 = AmazonS3ClientBuilder.defaultClient()
+    lazy implicit val s3conn:AmazonS3 = AmazonS3ClientBuilder.defaultClient()
 
     val lp = new ListParser("to_flush.lst")
     lp.foreach {(projectId:String,filePath:String)=>
