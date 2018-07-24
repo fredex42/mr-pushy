@@ -1,11 +1,12 @@
 import java.io.File
+
 import org.slf4j.LoggerFactory
 import com.amazonaws.services.s3.AmazonS3
 import com.amazonaws.services.s3.model._
 import com.amazonaws.{AmazonClientException, AmazonServiceException}
+
 import collection.JavaConverters._
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
 class MtUploader (bucketName: String, removePathSegments: Int){
@@ -16,12 +17,12 @@ class MtUploader (bucketName: String, removePathSegments: Int){
     str.split("/").drop(removePathSegments).mkString("/")
   }
 
-  def kickoff_single_upload(toUpload:File, uploadPath:String)(implicit client:AmazonS3):Future[PutObjectResult] = Future {
+  def kickoff_single_upload(toUpload:File, uploadPath:String)(implicit client:AmazonS3, exec:ExecutionContext):Future[PutObjectResult] = Future {
     val putRequest = new PutObjectRequest(bucketName, uploadPath, toUpload)
     client.putObject(putRequest)
   }
 
-  def mt_upload_part(toUpload:File, partNumber:Int, fileOffset:Long, uploadPath:String, uploadId: String, chunkSize: Long)(implicit client:AmazonS3):Future[UploadPartResult] = Future {
+  def mt_upload_part(toUpload:File, partNumber:Int, fileOffset:Long, uploadPath:String, uploadId: String, chunkSize: Long)(implicit client:AmazonS3,  exec:ExecutionContext):Future[UploadPartResult] = Future {
     val rq = new UploadPartRequest()
       .withUploadId(uploadId)
       .withBucketName(bucketName)
@@ -39,7 +40,7 @@ class MtUploader (bucketName: String, removePathSegments: Int){
     * @param client AmazonS3 client
     * @return Sequence of Futures of UploadPartReasult, one for each chunk.
     */
-  def kickoff_mt_upload(toUpload:File,uploadPath:String)(implicit client:AmazonS3):Future[CompleteMultipartUploadResult] = {
+  def kickoff_mt_upload(toUpload:File,uploadPath:String)(implicit client:AmazonS3, exec:ExecutionContext):Future[CompleteMultipartUploadResult] = {
     val mpRequest = new InitiateMultipartUploadRequest(bucketName, uploadPath)
     val mpResponse = client.initiateMultipartUpload(mpRequest)
 
@@ -82,7 +83,7 @@ class MtUploader (bucketName: String, removePathSegments: Int){
     })
   }
 
-  def kickoff_upload(filePath: String)(implicit client:AmazonS3):Future[UploadResult] = {
+  def kickoff_upload(filePath: String)(implicit client:AmazonS3,  exec:ExecutionContext):Future[UploadResult] = {
     val f:File = new File(filePath)
     val uploadPath = getUploadPath(f.getAbsolutePath)
     if(f.length()<CHUNK_SIZE){

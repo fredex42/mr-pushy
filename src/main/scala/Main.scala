@@ -3,12 +3,19 @@ import java.io.File
 import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
 import org.slf4j.LoggerFactory
 
-import scala.concurrent.{Await, Future}
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{Await, ExecutionContext, Future}
+import java.util.concurrent.Executors
+
 import scala.concurrent.duration._
 
 object Main extends App {
   override def main(args: Array[String]): Unit = {
+    /*
+    the default thread pool uses daemon threads which don't hold us open until they complete.
+    we want regular threads that do.
+     */
+    implicit val exec:ExecutionContext = ExecutionContext.fromExecutor(Executors.newCachedThreadPool())
+
     val logger = LoggerFactory.getLogger(getClass)
     lazy implicit val s3conn: AmazonS3 = AmazonS3ClientBuilder.defaultClient()
 

@@ -1,21 +1,21 @@
 import java.io.File
 import java.io.FileInputStream
 import java.security.MessageDigest
+
 import org.apache.commons.codec.binary.Hex
 import org.slf4j.LoggerFactory
 
-import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
 object EtagCalculator {
   val logger = LoggerFactory.getLogger(getClass)
 
-  def md5Of(str:Array[Byte]):Future[Array[Byte]] = Future {
+  def md5Of(str:Array[Byte])(implicit  exec:ExecutionContext):Future[Array[Byte]] = Future {
     MessageDigest.getInstance("md5").digest(str)
   }
 
-  def md5NextChunk(stream:FileInputStream, chunkNum:Int, chunkSize:Int, lastChunkSize:Int, totalChunks:Int, md5List:Seq[Future[Array[Byte]]]):Seq[Future[Array[Byte]]] = {
+  def md5NextChunk(stream:FileInputStream, chunkNum:Int, chunkSize:Int, lastChunkSize:Int, totalChunks:Int, md5List:Seq[Future[Array[Byte]]])(implicit  exec:ExecutionContext):Seq[Future[Array[Byte]]] = {
     if(chunkNum>totalChunks) return md5List
 
     logger.debug(s"reading chunk $chunkNum of $totalChunks")
@@ -33,7 +33,7 @@ object EtagCalculator {
     md5NextChunk(stream, chunkNum+1, chunkSize,lastChunkSize, totalChunks, updatedList)
   }
 
-  def eTagForFile(file:File, chunkSize:Int):Future[String] = {
+  def eTagForFile(file:File, chunkSize:Int)(implicit  exec:ExecutionContext):Future[String] = {
     val stream = new FileInputStream(file)
     logger.debug(s"calculating local etag for file ${file.getAbsolutePath}")
     logger.debug(s"file size is ${file.length} chunk size is ${chunkSize}")
@@ -67,7 +67,7 @@ object EtagCalculator {
     }
   }
 
-  def propertiesForFile(file:File, chunkSize:Int):Future[LocalFileProperties] = {
+  def propertiesForFile(file:File, chunkSize:Int)(implicit  exec:ExecutionContext):Future[LocalFileProperties] = {
     val etagFuture = eTagForFile(file, chunkSize)
     val localFileSize = file.length()
 
