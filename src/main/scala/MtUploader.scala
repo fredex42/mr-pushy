@@ -18,10 +18,10 @@ class MtUploader (bucketName: String, removePathSegments: Int){
   }
 
   def kickoff_single_upload(toUpload:File, uploadPath:String)(implicit client:AmazonS3, exec:ExecutionContext):Future[PutObjectResult] = Future {
-    logger.info(s"${toUpload.getCanonicalPath}: Starting upload")
+    logger.info(s"${toUpload.getCanonicalPath}: Starting single-hit upload")
     val putRequest = new PutObjectRequest(bucketName, uploadPath, toUpload)
     val result=client.putObject(putRequest)
-    logger.info(s"${toUpload.getCanonicalPath}: Finished upload")
+    logger.info(s"${toUpload.getCanonicalPath}: Finished single-hit upload")
     result
   }
 
@@ -44,7 +44,7 @@ class MtUploader (bucketName: String, removePathSegments: Int){
     * @return Sequence of Futures of UploadPartReasult, one for each chunk.
     */
   def kickoff_mt_upload(toUpload:File,uploadPath:String)(implicit client:AmazonS3, exec:ExecutionContext):Future[CompleteMultipartUploadResult] = {
-    logger.info(s"${toUpload.getCanonicalPath}: Starting upload")
+    logger.info(s"${toUpload.getCanonicalPath}: Starting multipart upload")
     val mpRequest = new InitiateMultipartUploadRequest(bucketName, uploadPath)
     val mpResponse = client.initiateMultipartUpload(mpRequest)
 
@@ -83,7 +83,7 @@ class MtUploader (bucketName: String, removePathSegments: Int){
         .withBucketName(bucketName)
         .withKey(uploadPath)
         .withPartETags(partEtags.asJava)
-      logger.info(s"${toUpload.getCanonicalPath}: Finished upload")
+      logger.info(s"${toUpload.getCanonicalPath}: Finished multipart upload")
       client.completeMultipartUpload(completeRq)
     })
   }
