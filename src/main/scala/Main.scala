@@ -21,7 +21,7 @@ object Main extends App {
         str.toInt
     }
 
-    implicit val exec:ExecutionContext = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(maxThreads))
+    implicit val exec:ExecutionContext = ExecutionContext.fromExecutor(Executors.newCachedThreadPool())
 
     val logger = LoggerFactory.getLogger(getClass)
     lazy implicit val s3conn: AmazonS3 = AmazonS3ClientBuilder.defaultClient()
