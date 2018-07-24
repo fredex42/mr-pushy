@@ -7,6 +7,8 @@ import scala.concurrent.ExecutionContext
 import java.util.concurrent.Executors
 
 import com.amazonaws.ClientConfiguration
+import com.amazonaws.auth.DefaultAWSCredentialsProviderChain
+
 import scala.util.{Failure, Success}
 
 object Main extends App {
@@ -15,6 +17,13 @@ object Main extends App {
     the default thread pool uses daemon threads which don't hold us open until they complete.
     we want regular threads that do.
      */
+    import com.amazonaws.metrics.AwsSdkMetrics
+    AwsSdkMetrics.enableDefaultMetrics
+
+    AwsSdkMetrics.setCredentialProvider(new DefaultAWSCredentialsProviderChain())
+
+    AwsSdkMetrics.setMetricNameSpace("UploadFlushList")
+
     lazy val maxThreads = System.getProperty("maxThreads") match {
       case null =>
         48
@@ -33,7 +42,9 @@ object Main extends App {
 
     val logger = LoggerFactory.getLogger(getClass)
     lazy val clientConfg:ClientConfiguration = new ClientConfiguration()
-    clientConfg.setMaxConnections((maxThreads*1.5).toInt)
+    clientConfg.setMaxConnections(maxThreads)
+    clientConfg.setRequestTimeout(10000)
+    clientConfg.setUseReaper(true)
     lazy implicit val s3conn: AmazonS3 = AmazonS3ClientBuilder.standard().withClientConfiguration(clientConfg).build()
 
     lazy val destBucket = System.getProperty("destBucket")
