@@ -56,7 +56,7 @@ class MtUploader (bucketName: String, removePathSegments: Int){
     }
     val finalChunkSize = toUpload.length - (chunks * CHUNK_SIZE)
 
-    val uploadPartsFutures = nextChunkPart(0,chunks-1,Seq()) :+ mt_upload_part(toUpload, chunks+1, chunks*CHUNK_SIZE, uploadPath, mpResponse.getUploadId, finalChunkSize)
+    val uploadPartsFutures = nextChunkPart(0,chunks-1,Seq()) :+ mt_upload_part(toUpload, chunks+1, chunks*CHUNK_SIZE, uploadPath, uploadId, finalChunkSize)
 
     Future.sequence(uploadPartsFutures)
   }
