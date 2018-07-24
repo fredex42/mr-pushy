@@ -28,6 +28,7 @@ jobs:
         key: v1-dep-{{ .Branch }}-{{ epoch }}
         paths:
         - ~/.ivy2
+        - ~/.m2
         - target
     - run: cat /dev/null | sbt test
     # Save test results

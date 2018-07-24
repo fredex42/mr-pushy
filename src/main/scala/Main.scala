@@ -52,6 +52,7 @@ object Main extends App {
           }
           )
         })
+        return
       }
     }
   }

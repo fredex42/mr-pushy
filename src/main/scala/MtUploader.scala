@@ -86,7 +86,6 @@ class MtUploader (bucketName: String, removePathSegments: Int){
     val f:File = new File(filePath)
     val uploadPath = getUploadPath(f.getAbsolutePath)
     if(f.length()<CHUNK_SIZE){
-      throw new Exception("testing")
       val uploadFuture = kickoff_single_upload(f, uploadPath)
       uploadFuture.onComplete({
         case Failure(err)=>
