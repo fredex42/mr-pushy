@@ -45,8 +45,8 @@ object Main extends App {
         Some(str.toInt)
     }
 
-    implicit val exec:ExecutionContext = ExecutionContext.fromExecutor(Executors.newFixedThreadPool((maxThreads.toDouble*2.toDouble/3.toDouble).toInt))
-    val uploadExecContext = ExecutionContext.fromExecutor(Executors.newFixedThreadPool((maxThreads.toDouble/3.toDouble).toInt))
+    implicit val exec:ExecutionContext = ExecutionContext.fromExecutor(Executors.newFixedThreadPool((maxThreads.toDouble/3.toDouble).toInt))
+    val uploadExecContext = ExecutionContext.fromExecutor(Executors.newFixedThreadPool((maxThreads.toDouble*2.toDouble/3.toDouble).toInt))
 
     val logger = LoggerFactory.getLogger(getClass)
     lazy val clientConfg:ClientConfiguration = new ClientConfiguration()
@@ -108,7 +108,7 @@ object Main extends App {
         uploader.kickoff_upload(filePath)(s3conn, uploadExecContext).map(uploadResult => {
           if(uploadResult.uploadType==UploadResultType.AlreadyThere) alreadyUploadedCounter+=1
           logger.info(s"$filePath: upload completed successfully (${uploadResult.uploadType.toString}), calculating etag")
-          EtagCalculator.propertiesForFile(new File(filePath), 8 * 1024 * 1024).map(localFileProperties => {
+          EtagCalculator.propertiesForFile(new File(filePath), 8 * 1024 * 1024)(exec).map(localFileProperties => {
             logger.debug(s"$filePath: etag calculated, checking if deletable")
             FileChecker.canDelete(destBucket, uploadResult.uploadedPath, localFileProperties).map({
               case true =>
