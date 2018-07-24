@@ -14,7 +14,14 @@ object Main extends App {
     the default thread pool uses daemon threads which don't hold us open until they complete.
     we want regular threads that do.
      */
-    implicit val exec:ExecutionContext = ExecutionContext.fromExecutor(Executors.newCachedThreadPool())
+    lazy val maxThreads = System.getProperty("maxThreads") match {
+      case null =>
+        48
+      case str: String =>
+        str.toInt
+    }
+
+    implicit val exec:ExecutionContext = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(maxThreads))
 
     val logger = LoggerFactory.getLogger(getClass)
     lazy implicit val s3conn: AmazonS3 = AmazonS3ClientBuilder.defaultClient()
@@ -50,16 +57,20 @@ object Main extends App {
     val uploader = new MtUploader(destBucket, pathSegments)
 
     var notFoundCounter=0
+    var zeroLengthCounter=0
     var alreadyUploadedCounter=0
     var successfulCounter=0
     var failedCounter=0
 
     lp.foreach { (projectId: String, filePath: String) =>
-      if(! new File(filePath).exists()){
+      val fileref = new File(filePath)
+      if(! fileref.exists()){
         notFoundCounter+=1
         if(!hideNotFound) logger.warn(s"$filePath does not exist, skipping")
-      } else {
-        val f = uploader.kickoff_upload(filePath).map(uploadResult => {
+      } else if(fileref.length()==0) {
+        zeroLengthCounter+=1
+        if(!hideNotFound) logger.warn(s"$filePath is zero length, skipping")
+      } val f = uploader.kickoff_upload(filePath).map(uploadResult => {
           if(uploadResult.uploadType==UploadResultType.AlreadyThere) alreadyUploadedCounter+=1
           logger.debug(s"upload completed successfully (${uploadResult.uploadType.toString}), calculating etag")
           EtagCalculator.propertiesForFile(new File(filePath), 8 * 1024 * 1024).map(localFileProperties => {
@@ -76,7 +87,6 @@ object Main extends App {
           )
         })
       }
+      logger.info("Completed iterating list")
     }
-    logger.info("Completed iterating list")
-  }
 }
