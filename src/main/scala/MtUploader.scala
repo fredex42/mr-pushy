@@ -83,31 +83,48 @@ class MtUploader (bucketName: String, removePathSegments: Int){
     })
   }
 
-  def kickoff_upload(filePath: String)(implicit client:AmazonS3,  exec:ExecutionContext):Future[UploadResult] = {
-    val f:File = new File(filePath)
-    val uploadPath = getUploadPath(f.getAbsolutePath)
+  private def internal_do_upload(f:File, uploadPath:String)(implicit client:AmazonS3, exec:ExecutionContext):Future[UploadResult] = {
     if(f.length()<CHUNK_SIZE){
       val uploadFuture = kickoff_single_upload(f, uploadPath)
       uploadFuture.onComplete({
         case Failure(err)=>
-          logger.error(s"Could not upload $filePath", err)
+          logger.error(s"Could not upload ${f.getCanonicalPath}", err)
         case Success(result)=>
-          logger.info(s"Successfully uploaded $filePath: ${result.getETag}")
+          logger.info(s"Successfully uploaded ${f.getCanonicalPath}: ${result.getETag}")
       })
       uploadFuture.map(result=>UploadResult(UploadResultType.Single,uploadPath, Some(result),None))
     } else {
-      logger.debug(s"$filePath: Starting multipart upload")
+      logger.debug(s"${f.getCanonicalPath}: Starting multipart upload")
       val uploadFuture = kickoff_mt_upload(f, uploadPath)
       uploadFuture.onComplete({
         case Failure(err)=>
-          logger.error(s"Could not upload $filePath", err)
+          logger.error(s"Could not upload ${f.getCanonicalPath}", err)
         case Success(seq)=>
-          logger.info(s"Successfully uploaded $filePath")
+          logger.info(s"Successfully uploaded ${f.getCanonicalPath}")
       })
       uploadFuture.map(result=>{
         logger.debug("upload completed, returning information")
         UploadResult(UploadResultType.Multipart,uploadPath, None,Some(result))
       })
+    }
+
+  }
+  def kickoff_upload(filePath: String)(implicit client:AmazonS3,  exec:ExecutionContext):Future[UploadResult] = {
+    val f:File = new File(filePath)
+    val uploadPath = getUploadPath(f.getAbsolutePath)
+
+    try {
+      client.getObjectMetadata(bucketName, uploadPath)
+      //if this doesn't throw an exception, then file already exists. Assume a previous upload; this will get validated elsewhere
+      Future(UploadResult(UploadResultType.AlreadyThere, uploadPath, None, None))
+    } catch {
+      case ex:AmazonS3Exception=>
+        if(ex.getMessage.contains("404 Not Found")) {
+          logger.debug(s"s3://$bucketName/$uploadPath does not currently exist, proceeding to upload")
+          internal_do_upload(f, uploadPath)
+        } else {
+          throw ex
+        }
     }
   }
 }

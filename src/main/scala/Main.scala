@@ -32,6 +32,13 @@ object Main extends App {
         str.toInt
     }
 
+    lazy val hideNotFound = System.getProperty("hideNotFound") match {
+      case null =>
+        false
+      case str: String =>
+        true
+    }
+
     logger.info("========================================================================")
     logger.info("New run starting")
     logger.info("========================================================================")
@@ -42,25 +49,34 @@ object Main extends App {
 
     val uploader = new MtUploader(destBucket, pathSegments)
 
+    var notFoundCounter=0
+    var alreadyUploadedCounter=0
+    var successfulCounter=0
+    var failedCounter=0
+
     lp.foreach { (projectId: String, filePath: String) =>
       if(! new File(filePath).exists()){
-        logger.warn(s"$filePath does not exist, skipping")
+        notFoundCounter+=1
+        if(!hideNotFound) logger.warn(s"$filePath does not exist, skipping")
       } else {
         val f = uploader.kickoff_upload(filePath).map(uploadResult => {
-          logger.debug("upload completed successfully, calculating etag")
+          if(uploadResult.uploadType==UploadResultType.AlreadyThere) alreadyUploadedCounter+=1
+          logger.debug(s"upload completed successfully (${uploadResult.uploadType.toString}), calculating etag")
           EtagCalculator.propertiesForFile(new File(filePath), 8 * 1024 * 1024).map(localFileProperties => {
             logger.debug("etag calculated, checking if deletable")
             FileChecker.canDelete(destBucket, uploadResult.uploadedPath, localFileProperties).map({
               case true =>
+                successfulCounter+=1
                 logger.info(s"Can delete $filePath")
               case false =>
+                failedCounter+=1
                 logger.warn(s"$filePath: UPLOAD FAILED, removing remote path")
             })
           }
           )
         })
-        return
       }
     }
+    logger.info("Completed iterating list")
   }
 }
