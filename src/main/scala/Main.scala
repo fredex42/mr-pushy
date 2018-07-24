@@ -70,7 +70,8 @@ object Main extends App {
       } else if(fileref.length()==0) {
         zeroLengthCounter+=1
         if(!hideNotFound) logger.warn(s"$filePath is zero length, skipping")
-      } val f = uploader.kickoff_upload(filePath).map(uploadResult => {
+      } else {
+        uploader.kickoff_upload(filePath).map(uploadResult => {
           if(uploadResult.uploadType==UploadResultType.AlreadyThere) alreadyUploadedCounter+=1
           logger.debug(s"upload completed successfully (${uploadResult.uploadType.toString}), calculating etag")
           EtagCalculator.propertiesForFile(new File(filePath), 8 * 1024 * 1024).map(localFileProperties => {
@@ -86,6 +87,7 @@ object Main extends App {
           }
           )
         })
+      }
       }
       logger.info("Completed iterating list")
     }
