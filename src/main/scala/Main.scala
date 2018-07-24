@@ -38,6 +38,13 @@ object Main extends App {
         str == "true"
     }
 
+    lazy val limit = System.getProperty("limit") match {
+      case null =>
+        None
+      case str: String=>
+        Some(str.toInt)
+    }
+
     implicit val exec:ExecutionContext = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(maxThreads))
 
     val logger = LoggerFactory.getLogger(getClass)
@@ -121,11 +128,15 @@ object Main extends App {
             })
           }
           )
-        if(n>50){
-          //sleep for 10s to make the upload threads kick in, every 50 items
-          n=0
-          Thread.sleep(10000)
-        }
+          limit match {
+            case Some(lim)=>
+              if(n>lim){
+                logger.info(s"Already triggered $n items, stopping")
+                return
+              }
+            case None=>
+
+          }
         })
       }
       }
