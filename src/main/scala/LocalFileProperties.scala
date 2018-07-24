@@ -1,0 +1,1 @@
+case class LocalFileProperties (eTag: String, fileSize: Long)

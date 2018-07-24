@@ -13,7 +13,7 @@
     <logger name="MtUploader" level="DEBUG"/>
     <logger name="Main$" level="DEBUG"/>
 
-    <root level="warning">
+    <root level="WARN">
         <appender-ref ref="STDOUT" />
     </root>
 </configuration>

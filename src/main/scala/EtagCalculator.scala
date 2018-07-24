@@ -66,4 +66,12 @@ object EtagCalculator {
       })
     }
   }
+
+  def propertiesForFile(file:File, chunkSize:Int):Future[LocalFileProperties] = {
+    val etagFuture = eTagForFile(file, chunkSize)
+    val localFileSize = file.length()
+
+    etagFuture.map(eTag=>LocalFileProperties(eTag, localFileSize))
+
+  }
 }
