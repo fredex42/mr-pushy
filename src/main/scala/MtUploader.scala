@@ -120,7 +120,7 @@ class MtUploader (bucketName: String, removePathSegments: Int){
   def kickoff_upload(filePath: String)(implicit client:AmazonS3,  exec:ExecutionContext):Future[UploadResult] = {
     val f:File = new File(filePath)
     val uploadPath = getUploadPath(f.getAbsolutePath)
-
+    logger.debug(s"$filePath: kickoff to $uploadPath")
     try {
       client.getObjectMetadata(bucketName, uploadPath)
       //if this doesn't throw an exception, then file already exists. Assume a previous upload; this will get validated elsewhere
