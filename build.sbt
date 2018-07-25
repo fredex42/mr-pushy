@@ -25,6 +25,11 @@ libraryDependencies ++= Seq(
   "org.mockito" % "mockito-all" % "1.10.19" % Test
 )
 
+testOptions in Test ++= Seq(
+  Tests.Argument("junitxml", "junit.outdir", sys.env.getOrElse("SBT_JUNIT_DIR",".")),
+  Tests.Argument("console")
+)
+
 rpmVendor := "theguardian"
 rpmLicense := Some("GPLv3")
 

@@ -3,7 +3,7 @@ defaults: &defaults
   shell: /bin/bash --login
   environment:
     CIRCLE_ARTIFACTS: /tmp/circleci-artifacts
-    CIRCLE_TEST_REPORTS: /tmp/circleci-test-results
+    SBT_JUNIT_DIR: /tmp/circleci-test-results/sbt
     JVM_OPTS: -Xmx3200m
     TERM: dumb
   docker:
