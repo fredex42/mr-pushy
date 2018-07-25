@@ -6,8 +6,9 @@ import com.amazonaws.services.s3.model._
 import com.amazonaws.{AmazonClientException, AmazonServiceException}
 
 import collection.JavaConverters._
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
+import scala.concurrent.duration._
 
 class MtUploader (bucketName: String, removePathSegments: Int){
   val CHUNK_SIZE:Long = 8*1024*1024
@@ -105,10 +106,15 @@ class MtUploader (bucketName: String, removePathSegments: Int){
           logger.debug(s"$uploadPath: parts were successfully")
       })
 
-      completionFuture.map(result=>{
+      val finalResult = completionFuture.map(result=>{
         logger.debug("upload completed, returning information")
         UploadResult(UploadResultType.Multipart,uploadPath, None,Some(result))
       })
+
+      //drastic solution; wait until all parts are uploaded before going back and getting the next file.
+      Await.ready(uploadFuture, 2 hours)
+
+      finalResult
     }
 
   }
