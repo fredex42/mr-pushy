@@ -24,6 +24,13 @@ object Main extends App {
 
     AwsSdkMetrics.setMetricNameSpace("UploadFlushList")
 
+    val listFileName = args.headOption match {
+      case None=>
+        println("you must specify a list file to upload")
+        sys.exit(2)
+      case Some(listfile)=>listfile
+    }
+
     lazy val maxThreads = System.getProperty("maxThreads") match {
       case null =>
         48
@@ -88,8 +95,9 @@ object Main extends App {
     logger.info(s"Removing $pathSegments from paths for upload")
     logger.info(s"Uploading to $destBucket")
     logger.info(s"Really delete is $reallyDelete")
+    logger.info(s"noProjects is set to $noProjects")
 
-    val lp = new ListParser("to_flush.lst", noProjects)
+    val lp = new ListParser(listFileName, noProjects)
 
     val uploader = new MtUploader(destBucket, pathSegments)
 
