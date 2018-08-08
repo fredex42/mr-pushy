@@ -75,6 +75,13 @@ object Main extends App {
         true
     }
 
+    lazy val noProjects = System.getProperty("noProjects") match {
+      case null =>
+        false
+      case str: String =>
+        true
+    }
+
     logger.info("========================================================================")
     logger.info("New run starting")
     logger.info("========================================================================")
@@ -82,7 +89,7 @@ object Main extends App {
     logger.info(s"Uploading to $destBucket")
     logger.info(s"Really delete is $reallyDelete")
 
-    val lp = new ListParser("to_flush.lst")
+    val lp = new ListParser("to_flush.lst", noProjects)
 
     val uploader = new MtUploader(destBucket, pathSegments)
 
@@ -93,7 +100,7 @@ object Main extends App {
     var failedCounter=0
     var n=0
 
-    lp.foreach { (projectId: String, filePath: String) =>
+    lp.foreach { (projectId: Option[String], filePath: String) =>
       val fileref = new File(filePath)
       if(! fileref.exists()){
         notFoundCounter+=1
