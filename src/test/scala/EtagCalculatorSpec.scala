@@ -17,13 +17,13 @@ class EtagCalculatorSpec extends Specification {
   "EtagCalculator.eTagForFile" should {
     "calculate a single md5 hash for a file if it is larger than the given chunk size" in {
       val f = new File("./src/test/resources/sample2.lst")
-      val result = EtagCalculator.eTagForFile(f,40960)
+      val result = Await.result(EtagCalculator.eTagForFile(f,40960), 5.seconds)
       result shouldEqual "89684d80211bdff0b4db7db7be362e9c"
     }
 
     "calculate a compound md5 hash for a file if it is larger than the given chunk size" in {
       val f = new File("./src/test/resources/sample2.lst")
-      val result = EtagCalculator.eTagForFile(f,6)
+      val result = Await.result(EtagCalculator.eTagForFile(f,6), 5.seconds)
       result shouldEqual "5e1534261e035cd0325d0888626103c4-21"
     }
   }

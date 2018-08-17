@@ -75,6 +75,14 @@ object Main extends App {
         str.toInt
     }
 
+    /* default chunk size to 50 megs and make it user-changeable */
+    lazy val chunkSize = System.getProperty("chunkSize") match {
+      case null =>
+        50 * 1024 * 1024
+      case str: String =>
+        str.toInt * 1024 *1024
+    }
+
     lazy val hideNotFound = System.getProperty("hideNotFound") match {
       case null =>
         false
@@ -123,7 +131,7 @@ object Main extends App {
         uploader.kickoff_upload(filePath, uploadExecContext).map(uploadResult => {
           if(uploadResult.uploadType==UploadResultType.AlreadyThere) alreadyUploadedCounter+=1
           logger.info(s"$filePath: upload completed successfully (${uploadResult.uploadType.toString}), calculating etag")
-          EtagCalculator.propertiesForFile(new File(filePath), 8 * 1024 * 1024)(exec).map(localFileProperties => {
+          EtagCalculator.propertiesForFile(new File(filePath), chunkSize)(exec).map(localFileProperties => {
             logger.debug(s"$filePath: etag calculated, checking if deletable")
             FileChecker.canDelete(destBucket, uploadResult.uploadedPath, localFileProperties) match {
               case true =>
@@ -144,8 +152,7 @@ object Main extends App {
                     logger.error(s"$filePath: could not delete remote file", err)
                 }
             }
-          }
-          )
+          })
           if(limit.isDefined){
             if(n>limit.get){
               logger.info(s"Already triggered $n items, stopping")
