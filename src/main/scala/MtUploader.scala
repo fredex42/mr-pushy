@@ -10,8 +10,7 @@ import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 import scala.concurrent.duration._
 
-class MtUploader (bucketName: String, removePathSegments: Int){
-  val CHUNK_SIZE:Long = 8*1024*1024
+class MtUploader (bucketName: String, removePathSegments: Int, chunkSize:Long = 8*1024*1024){
   val logger = LoggerFactory.getLogger(getClass)
 
   def getUploadPath(str: String):String = {
@@ -26,7 +25,7 @@ class MtUploader (bucketName: String, removePathSegments: Int){
     result
   }
 
-  def mt_upload_part(toUpload:File, partNumber:Int, fileOffset:Long, uploadPath:String, uploadId: String, chunkSize: Long)(implicit client:AmazonS3,  exec:ExecutionContext):Future[UploadPartResult] = Future {
+  def mt_upload_part(toUpload:File, partNumber:Int, fileOffset:Long, uploadPath:String, uploadId: String, thisChunkSize: Long)(implicit client:AmazonS3,  exec:ExecutionContext):Future[UploadPartResult] = Future {
     logger.debug(s"${toUpload.getCanonicalPath}: uploading part $partNumber")
     val rq = new UploadPartRequest()
       .withUploadId(uploadId)
@@ -35,7 +34,7 @@ class MtUploader (bucketName: String, removePathSegments: Int){
       .withFile(toUpload)
       .withFileOffset(fileOffset)
       .withPartNumber(partNumber+1)
-      .withPartSize(chunkSize)
+      .withPartSize(thisChunkSize)
     client.uploadPart(rq)
   }
 
@@ -47,23 +46,23 @@ class MtUploader (bucketName: String, removePathSegments: Int){
     */
   def kickoff_mt_upload(toUpload:File,uploadPath:String, uploadId:String)(implicit client:AmazonS3, exec:ExecutionContext):Future[Seq[UploadPartResult]] = {
 
-    val chunks = math.ceil(toUpload.length()/CHUNK_SIZE).toInt
+    val chunks = math.ceil(toUpload.length()/chunkSize).toInt
     def nextChunkPart(currentChunk:Int, lastChunk:Int, parts:Seq[Future[UploadPartResult]]):Seq[Future[UploadPartResult]] = {
-      val updatedParts:Seq[Future[UploadPartResult]] = parts :+ mt_upload_part(toUpload, currentChunk, currentChunk * CHUNK_SIZE, uploadPath, uploadId, CHUNK_SIZE)
+      val updatedParts:Seq[Future[UploadPartResult]] = parts :+ mt_upload_part(toUpload, currentChunk, currentChunk * chunkSize, uploadPath, uploadId, chunkSize)
       if(currentChunk<lastChunk)
         nextChunkPart(currentChunk+1, lastChunk, updatedParts)
       else
         updatedParts
     }
-    val finalChunkSize = toUpload.length - (chunks * CHUNK_SIZE)
+    val finalChunkSize = toUpload.length - (chunks * chunkSize)
 
-    val uploadPartsFutures = nextChunkPart(0,chunks-1,Seq()) :+ mt_upload_part(toUpload, chunks+1, chunks*CHUNK_SIZE, uploadPath, uploadId, finalChunkSize)
+    val uploadPartsFutures = nextChunkPart(0,chunks-1,Seq()) :+ mt_upload_part(toUpload, chunks+1, chunks*chunkSize, uploadPath, uploadId, finalChunkSize)
 
     Future.sequence(uploadPartsFutures)
   }
 
   private def internal_do_upload(f:File, uploadPath:String, uploadExecContext:ExecutionContext)(implicit client:AmazonS3, exec:ExecutionContext):Future[UploadResult] = {
-    if(f.length()<CHUNK_SIZE){
+    if(f.length()<chunkSize){
       val uploadFuture = kickoff_single_upload(f, uploadPath)(client, uploadExecContext)
       uploadFuture.onComplete({
         case Failure(err)=>

@@ -107,7 +107,7 @@ object Main extends App {
 
     val lp = new ListParser(listFileName, noProjects)
 
-    val uploader = new MtUploader(destBucket, pathSegments)
+    val uploader = new MtUploader(destBucket, pathSegments, chunkSize)
 
     var notFoundCounter=0
     var zeroLengthCounter=0
