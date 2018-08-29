@@ -53,7 +53,7 @@ object Main extends App {
     }
 
     implicit val exec:ExecutionContext = ExecutionContext.fromExecutor(Executors.newCachedThreadPool())
-    val uploadExecContext = ExecutionContext.fromExecutor(Executors.newFixedThreadPool((maxThreads.toDouble*2.toDouble/3.toDouble).toInt))
+    val uploadExecContext = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(maxThreads))
 
     val logger = LoggerFactory.getLogger(getClass)
     lazy val clientConfg:ClientConfiguration = new ClientConfiguration()
