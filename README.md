@@ -20,9 +20,12 @@ separated by Linefeed (LF) characters
 2. CSV format, as a Unix standard UTF-8 text file, with two colums where the second
 column indicates the filepath
 
-This file should be called `to_flush.lst` and in the directory that you are running the program from.
+See the samples in `src/test/resources` for examples that are used in testing.
 
 #### Arguments
+You must specify the path to the list of files you want to upload as the only conventional commandline
+argument.  The program will exit if you don't do this.
+
 Runtime parameters are specified as system properties.  They can be specified on the
 commandline using the standard -Dparameter=value syntax:
 
