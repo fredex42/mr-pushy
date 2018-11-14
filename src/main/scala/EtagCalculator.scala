@@ -31,9 +31,9 @@ object EtagCalculator {
 
       logger.debug(s"${file.getPath}: reading chunk $chunkNum of $totalChunks")
       var buffer = if (chunkNum < totalChunks) {
-        stream.getChannel.map(FileChannel.MapMode.READ_ONLY, chunkNum * chunkSize, chunkSize)
+        stream.getChannel.map(FileChannel.MapMode.READ_ONLY, chunkNum.toLong * chunkSize.toLong, chunkSize)
       } else {
-        stream.getChannel.map(FileChannel.MapMode.READ_ONLY, chunkNum * chunkSize, lastChunkSize)
+        stream.getChannel.map(FileChannel.MapMode.READ_ONLY, chunkNum.toLong * chunkSize.toLong, lastChunkSize)
       }
       stream.close()
       md5Of(buffer)
