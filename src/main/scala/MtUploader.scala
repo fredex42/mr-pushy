@@ -132,6 +132,7 @@ class MtUploader (bucketName: String, removePathSegments: Int, chunkSize:Long = 
           logger.debug(s"s3://$bucketName/$uploadPath does not currently exist, proceeding to upload")
           internal_do_upload(f, uploadPath, uploadExecContext)
         } else {
+          logger.error(s"S3 error ${ex.getErrorCode}: ${ex.getMessage} ${ex.getAdditionalDetails} ${ex.getErrorResponseXml}")
           throw ex
         }
     }
