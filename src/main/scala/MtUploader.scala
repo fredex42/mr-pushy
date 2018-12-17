@@ -10,7 +10,7 @@ import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 import scala.concurrent.duration._
 
-class MtUploader (bucketName: String, removePathSegments: Int, chunkSize:Long = 8*1024*1024){
+class MtUploader (bucketName: String, removePathSegments: Int, chunkSize:Long = 8*1024*1024, maxRetries:Int = 25){
   val logger = LoggerFactory.getLogger(getClass)
 
   def getUploadPath(str: String):String = {
@@ -25,18 +25,27 @@ class MtUploader (bucketName: String, removePathSegments: Int, chunkSize:Long = 
     result
   }
 
-  def mt_upload_part(toUpload:File, partNumber:Int, fileOffset:Long, uploadPath:String, uploadId: String, thisChunkSize: Long)(implicit client:AmazonS3,  exec:ExecutionContext):Future[UploadPartResult] = Future {
-    logger.debug(s"${toUpload.getCanonicalPath}: uploading part $partNumber")
-    val rq = new UploadPartRequest()
-      .withUploadId(uploadId)
-      .withBucketName(bucketName)
-      .withKey(uploadPath)
-      .withFile(toUpload)
-      .withFileOffset(fileOffset)
-      .withPartNumber(partNumber+1)
-      .withPartSize(thisChunkSize)
-    client.uploadPart(rq)
-  }
+  def mt_upload_part(toUpload:File, partNumber:Int, fileOffset:Long, uploadPath:String, uploadId: String, thisChunkSize: Long, retryCount:Int=0)(implicit client:AmazonS3,  exec:ExecutionContext):Future[UploadPartResult] = Future {
+      logger.debug(s"${toUpload.getCanonicalPath}: uploading part $partNumber")
+      val rq = new UploadPartRequest()
+        .withUploadId(uploadId)
+        .withBucketName(bucketName)
+        .withKey(uploadPath)
+        .withFile(toUpload)
+        .withFileOffset(fileOffset)
+        .withPartNumber(partNumber + 1)
+        .withPartSize(thisChunkSize)
+      client.uploadPart(rq)
+    }.recoverWith({
+      case ex:Throwable=>
+        logger.warn(s"${toUpload.getCanonicalPath} part $partNumber: Caught exception on retry $retryCount", ex)
+        if(retryCount<maxRetries) {
+          Thread.sleep(1000)
+          mt_upload_part(toUpload, partNumber, fileOffset, uploadPath, uploadId, thisChunkSize, retryCount+1)
+        } else {
+          throw ex  //this causes the whole upload future to fail and is caught after Future.sequence below
+        }
+    })
 
   /**
     * intiates a multipart upload request and kicks off Futures to upload each part
