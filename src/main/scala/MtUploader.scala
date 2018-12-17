@@ -118,12 +118,10 @@ class MtUploader (bucketName: String, removePathSegments: Int, chunkSize:Long = 
           logger.debug(s"$uploadPath: parts were successfully")
       })
 
-      val finalResult = completionFuture.map(result=>{
+      completionFuture.map(result=>{
         logger.debug("upload completed, returning information")
         UploadResult(UploadResultType.Multipart,uploadPath, None,Some(result))
       })
-
-      finalResult
     }
 
   }

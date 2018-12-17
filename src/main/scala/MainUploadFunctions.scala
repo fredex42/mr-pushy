@@ -52,7 +52,7 @@ trait MainUploadFunctions {
     * @return a Tuple of two promises; the first, which contains an [[UploadResult]], resolves once the upload has completed
     *         and the second , which contains a message String, resolves once verification has completed
     */
-  def doUpload(uploader:MtUploader, filePath:String, destBucket:String, fileref:File, chunkSize:Int, reallyDelete:Boolean, uploadExecContext:ExecutionContext)
+  def doUpload(uploader:MtUploader, filePath:String, destBucket:String, fileref:File, chunkSize:Int, reallyDelete:Boolean, uploadExecContext:ExecutionContext, genericUploadContext:ExecutionContext)
               (implicit s3Client:AmazonS3, exec:ExecutionContext):(Promise[Try[UploadResult]],Promise[String]) = {
     val uploadCompletionPromise:Promise[Try[UploadResult]] = Promise()
     val verifyCompletionPromise:Promise[String] = Promise()
@@ -67,13 +67,13 @@ trait MainUploadFunctions {
         case Success(Failure(msg))=>verifyCompletionPromise.complete(Failure(msg))
         case Failure(err)=>verifyCompletionPromise.complete(Failure(err))
       })
-    })
+    })(genericUploadContext)
 
     actualUploadFuture.recoverWith({
       case err:Throwable=>
         uploadCompletionPromise.complete(Success(Failure(err)))
         Future(Tuple2(uploadCompletionPromise, verifyCompletionPromise))
-    })
+    })(genericUploadContext)
     Tuple2(uploadCompletionPromise, verifyCompletionPromise)
   }
 

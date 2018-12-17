@@ -36,7 +36,7 @@ class TestMainUploadFunctions extends Specification with Mockito {
         }
       }
 
-      val results = testClass.doUpload(mockUploader, "/path/to/testfile", "destbucket", mockFileRef, 20, true, uploadExecContext)
+      val results = testClass.doUpload(mockUploader, "/path/to/testfile", "destbucket", mockFileRef, 20, true, uploadExecContext, uploadExecContext)
       there was no(mockCheckDeletable).apply()
 
       val finalresult = Await.result(results._1.future, 1 second)
@@ -67,7 +67,7 @@ class TestMainUploadFunctions extends Specification with Mockito {
         }
       }
 
-      val results = testClass.doUpload(mockUploader, "/path/to/testfile", "destbucket", mockFileRef, 20, true, uploadExecContext)
+      val results = testClass.doUpload(mockUploader, "/path/to/testfile", "destbucket", mockFileRef, 20, true, uploadExecContext, uploadExecContext)
 
       val finalresult = Await.result(results._1.future, 1 second)
       finalresult must beSuccessfulTry
@@ -98,7 +98,7 @@ class TestMainUploadFunctions extends Specification with Mockito {
         }
       }
 
-      val results = testClass.doUpload(mockUploader, "/path/to/testfile", "destbucket", mockFileRef, 20, true, uploadExecContext)
+      val results = testClass.doUpload(mockUploader, "/path/to/testfile", "destbucket", mockFileRef, 20, true, uploadExecContext, uploadExecContext)
 
       val finalresult = Await.result(results._1.future, 1 second)
       finalresult must beSuccessfulTry

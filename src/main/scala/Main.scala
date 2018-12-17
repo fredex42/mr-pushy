@@ -53,6 +53,7 @@ object Main extends App with MainUploadFunctions {
 
     implicit val exec:ExecutionContext = ExecutionContext.fromExecutor(Executors.newFixedThreadPool((maxThreads.toFloat*2.0/3.0).toInt))
     val uploadExecContext = ExecutionContext.fromExecutor(Executors.newFixedThreadPool((maxThreads.toFloat*1.0/3.0).toInt))
+    val genericExecContext = ExecutionContext.fromExecutor(Executors.newCachedThreadPool())
 
     lazy val clientConfg:ClientConfiguration = new ClientConfiguration()
     clientConfg.setMaxConnections(maxThreads)
@@ -127,7 +128,7 @@ object Main extends App with MainUploadFunctions {
       } else {
         n+=1
 
-        val (uploadCompletionPromise, verifyCompletionPromise) = doUpload(uploader, filePath,destBucket, fileref, chunkSize, reallyDelete, uploadExecContext)
+        val (uploadCompletionPromise, verifyCompletionPromise) = doUpload(uploader, filePath,destBucket, fileref, chunkSize, reallyDelete, uploadExecContext, genericExecContext)
 
         //verify runs can proceed in full parallel
         verifyCompletionPromise.future.onComplete({
