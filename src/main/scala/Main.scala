@@ -10,13 +10,12 @@ import scala.util.{Failure, Success, Try}
 import scala.concurrent.duration._
 
 object Main extends App with MainUploadFunctions {
-  override val logger = LoggerFactory.getLogger(getClass)
-
   override def main(args: Array[String]): Unit = {
     /*
     the default thread pool uses daemon threads which don't hold us open until they complete.
     we want regular threads that do.
      */
+    val logger = LoggerFactory.getLogger(getClass)
     import com.amazonaws.metrics.AwsSdkMetrics
     AwsSdkMetrics.enableDefaultMetrics
 

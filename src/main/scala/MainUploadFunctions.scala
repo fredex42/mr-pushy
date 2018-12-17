@@ -1,38 +1,37 @@
 import java.io.File
 
-import Main.logger
 import com.amazonaws.services.s3.AmazonS3
-import org.slf4j.Logger
+import org.slf4j.{Logger, LoggerFactory}
 
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.{Failure, Success, Try}
 
 trait MainUploadFunctions {
-  val logger:Logger
+  val doUploadLogger:Logger = LoggerFactory.getLogger(getClass)
 
   def checkDeletable(filePath:String,destBucket:String, fileref:File, uploadResult: UploadResult, uploader:MtUploader, chunkSize:Int, reallyDelete:Boolean)
                     (implicit exec:ExecutionContext, s3Client:AmazonS3)  = {
     EtagCalculator.propertiesForFile(new File(filePath), chunkSize)(exec).map(localFileProperties => {
-      logger.debug(s"$filePath: etag calculated, checking if deletable")
+      doUploadLogger.debug(s"$filePath: etag calculated, checking if deletable")
       FileChecker.canDelete(destBucket, uploadResult.uploadedPath, localFileProperties) match {
         case true =>
           if(reallyDelete) {
-            logger.info(s"$filePath: will delete")
+            doUploadLogger.info(s"$filePath: will delete")
             Try(fileref.delete()).flatMap({
               case true=>Success("deleted local file")
               case false=>Failure(new RuntimeException("could not delete local file"))
             })
           } else {
-            logger.info(s"$filePath: can be deleted. Set reallyDelete property to 'true'")
+            doUploadLogger.info(s"$filePath: can be deleted. Set reallyDelete property to 'true'")
             Success("would be deleted")
           }
         case false =>
-          logger.warn(s"$filePath: UPLOAD FAILED, removing remote path")
+          doUploadLogger.warn(s"$filePath: UPLOAD FAILED, removing remote path")
           uploader.delete_failed_upload(filePath) match {
             case Success(u)=>
-              logger.debug(s"$filePath: remote file deleted")
+              doUploadLogger.debug(s"$filePath: remote file deleted")
             case Failure(err)=>
-              logger.error(s"$filePath: could not delete remote file", err)
+              doUploadLogger.error(s"$filePath: could not delete remote file", err)
           }
           Failure(new RuntimeException("Checksum or size did not match, removing remote file"))
       }
@@ -59,7 +58,7 @@ trait MainUploadFunctions {
     val verifyCompletionPromise:Promise[String] = Promise()
 
     val actualUploadFuture = uploader.kickoff_upload(filePath, uploadExecContext).map(uploadResult => {
-      logger.info(s"$filePath: upload completed successfully (${uploadResult.uploadType.toString}), calculating etag")
+      doUploadLogger.info(s"$filePath: upload completed successfully (${uploadResult.uploadType.toString}), calculating etag")
 
       uploadCompletionPromise.complete(Success(Success(uploadResult))) //this lets the next upload start
 

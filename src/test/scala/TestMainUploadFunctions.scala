@@ -27,7 +27,7 @@ class TestMainUploadFunctions extends Specification with Mockito {
       mockUploader.kickoff_upload(anyString,any[ExecutionContext])(any[AmazonS3], any[ExecutionContext]) returns Future.failed(new RuntimeException("my hovercraft is full of eels"))
 
       val testClass = new MainUploadFunctions {
-        override val logger: Logger = mockLogger
+        override val doUploadLogger: Logger = mockLogger
 
         override def checkDeletable(filePath:String,destBucket:String, fileref:File, uploadResult: UploadResult, uploader:MtUploader, chunkSize:Int, reallyDelete:Boolean)
                                    (implicit exec:ExecutionContext, s3Client:AmazonS3):Future[Try[String]] = {
@@ -58,7 +58,7 @@ class TestMainUploadFunctions extends Specification with Mockito {
       mockUploader.kickoff_upload(anyString,any[ExecutionContext])(any[AmazonS3], any[ExecutionContext]) returns Future(mockResult)
 
       val testClass = new MainUploadFunctions {
-        override val logger: Logger = mockLogger
+        override val doUploadLogger: Logger = mockLogger
 
         override def checkDeletable(filePath:String,destBucket:String, fileref:File, uploadResult: UploadResult, uploader:MtUploader, chunkSize:Int, reallyDelete:Boolean)
                                    (implicit exec:ExecutionContext, s3Client:AmazonS3):Future[Try[String]] = {
@@ -89,7 +89,7 @@ class TestMainUploadFunctions extends Specification with Mockito {
       mockUploader.kickoff_upload(anyString,any[ExecutionContext])(any[AmazonS3], any[ExecutionContext]) returns Future(mockResult)
 
       val testClass = new MainUploadFunctions {
-        override val logger: Logger = mockLogger
+        override val doUploadLogger: Logger = mockLogger
 
         override def checkDeletable(filePath:String,destBucket:String, fileref:File, uploadResult: UploadResult, uploader:MtUploader, chunkSize:Int, reallyDelete:Boolean)
                                    (implicit exec:ExecutionContext, s3Client:AmazonS3):Future[Try[String]] = {
