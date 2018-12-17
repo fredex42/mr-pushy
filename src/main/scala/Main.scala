@@ -139,12 +139,17 @@ object Main extends App with MainUploadFunctions {
             failedCounter+=1
         })
 
-        //get around timeout issues by only uploading one file at a time
-        Await.result(uploadCompletionPromise.future, 1 hours) match {
-          case Success(uploadResult) =>
-            if (uploadResult.uploadType == UploadResultType.AlreadyThere) alreadyUploadedCounter += 1
-          case Failure(err)=>
-            logger.error(s"Could not upload: ", err)
+        try {
+          //get around timeout issues by only uploading one file at a time
+          Await.result(uploadCompletionPromise.future, 4 hours) match {
+            case Success(uploadResult) =>
+              if (uploadResult.uploadType == UploadResultType.AlreadyThere) alreadyUploadedCounter += 1
+            case Failure(err) =>
+              logger.error(s"Could not upload: ", err)
+          }
+        } catch {
+          case ex:Throwable=>
+            logger.error("Upload thread crashed, this should not happen", ex)
         }
 
         if(limit.isDefined){

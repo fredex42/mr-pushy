@@ -65,6 +65,7 @@ class MtUploader (bucketName: String, removePathSegments: Int, chunkSize:Long = 
     val chunks = math.ceil(toUpload.length()/chunkSize).toInt
     val finalChunkSize = toUpload.length - (chunks * chunkSize)
 
+    logger.info(s"${toUpload.getCanonicalPath}: uploading in $chunks chunks")
     if(chunks>10000) {
       Future.failed(new RuntimeException(s"$uploadPath: would have more than 10,000 parts ($chunks)"))
     } else {
@@ -121,9 +122,6 @@ class MtUploader (bucketName: String, removePathSegments: Int, chunkSize:Long = 
         logger.debug("upload completed, returning information")
         UploadResult(UploadResultType.Multipart,uploadPath, None,Some(result))
       })
-
-      //drastic solution; wait until all parts are uploaded before going back and getting the next file.
-      Await.ready(uploadFuture, 2 hours)
 
       finalResult
     }
