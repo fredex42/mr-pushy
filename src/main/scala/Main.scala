@@ -10,7 +10,7 @@ import scala.util.{Failure, Success, Try}
 import scala.concurrent.duration._
 
 object Main extends App with MainUploadFunctions {
-  val logger = LoggerFactory.getLogger(getClass)
+  override val logger = LoggerFactory.getLogger(getClass)
 
   override def main(args: Array[String]): Unit = {
     /*
