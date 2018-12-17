@@ -54,8 +54,6 @@ class MtUploader (bucketName: String, removePathSegments: Int, chunkSize:Long = 
     * @return Sequence of Futures of UploadPartReasult, one for each chunk.
     */
   def kickoff_mt_upload(toUpload:File,uploadPath:String, uploadId:String)(implicit client:AmazonS3, exec:ExecutionContext):Future[Seq[UploadPartResult]] = {
-
-    val chunks = math.ceil(toUpload.length()/chunkSize).toInt
     def nextChunkPart(currentChunk:Int, lastChunk:Int, parts:Seq[Future[UploadPartResult]]):Seq[Future[UploadPartResult]] = {
       val updatedParts:Seq[Future[UploadPartResult]] = parts :+ mt_upload_part(toUpload, currentChunk, currentChunk * chunkSize, uploadPath, uploadId, chunkSize)
       if(currentChunk<lastChunk)
@@ -63,11 +61,16 @@ class MtUploader (bucketName: String, removePathSegments: Int, chunkSize:Long = 
       else
         updatedParts
     }
+
+    val chunks = math.ceil(toUpload.length()/chunkSize).toInt
     val finalChunkSize = toUpload.length - (chunks * chunkSize)
 
-    val uploadPartsFutures = nextChunkPart(0,chunks-1,Seq()) :+ mt_upload_part(toUpload, chunks+1, chunks*chunkSize, uploadPath, uploadId, finalChunkSize)
-
-    Future.sequence(uploadPartsFutures)
+    if(chunks>10000) {
+      Future.failed(new RuntimeException(s"$uploadPath: would have more than 10,000 parts ($chunks)"))
+    } else {
+      val uploadPartsFutures = nextChunkPart(0, chunks - 1, Seq()) :+ mt_upload_part(toUpload, chunks + 1, chunks * chunkSize, uploadPath, uploadId, finalChunkSize)
+      Future.sequence(uploadPartsFutures)
+    }
   }
 
   private def internal_do_upload(f:File, uploadPath:String, uploadExecContext:ExecutionContext)(implicit client:AmazonS3, exec:ExecutionContext):Future[UploadResult] = {
