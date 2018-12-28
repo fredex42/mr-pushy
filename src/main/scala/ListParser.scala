@@ -1,5 +1,7 @@
 import scala.io.Source
 import org.slf4j.LoggerFactory
+import scala.io.Codec
+import java.nio.charset.CodingErrorAction
 
 class ListParser(listFileName:String, noProjects:Boolean) {
   val lineExtractor = "^(\\d+),(.*)$".r
@@ -12,6 +14,11 @@ class ListParser(listFileName:String, noProjects:Boolean) {
     * @return number of items finally processed
     */
   def foreach(func: (Option[String], String)=>Boolean):Int = {
+    //see https://stackoverflow.com/questions/10846848/why-do-i-get-a-malformedinputexception-from-this-code
+    implicit val codec = Codec("UTF-8")
+    codec.onMalformedInput(CodingErrorAction.REPLACE)
+    codec.onUnmappableCharacter(CodingErrorAction.REPLACE)
+
     var n=0
     for(line<-Source.fromFile(listFileName).getLines) {
       try {
