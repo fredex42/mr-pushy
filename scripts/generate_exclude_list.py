@@ -11,7 +11,7 @@ from pprint import pprint
 
 logging.basicConfig(level=logging.WARN)
 logger = logging.getLogger(__name__)
-logger.level = logging.DEBUG
+logger.level = logging.INFO
 
 is_vidispine = re.compile(r'^\w{2}-\d+')
 
@@ -135,7 +135,7 @@ parser.add_argument("--column", dest='col_index', help="Zero-based index of the 
 parser.add_argument("--proto", dest='proto', help="Specify http or https protocol", default="https")
 parser.add_argument("--host", dest='host', help="Host that pluto is running on", default="localhost")
 parser.add_argument("--authfile", dest='authfile', default="auth.yaml")
-
+parser.add_argument("--output", dest='outputfile', default='excludepaths.lst')
 args = parser.parse_args()
 auth = read_authfile(args.authfile)
 
@@ -147,5 +147,7 @@ for entry in load_file(args.sourcefile, int(args.col_index)):
         logger.debug(exclude_list)
     except InvalidVidispineID as e:
         logger.error("Invalid vidispine ID: {0}".format(str(e)))
-for entry in exclude_list:
-    print(entry)
+
+with open(args.outputfile, "w") as fout:
+    for entry in exclude_list:
+        fout.write(entry + "\n")

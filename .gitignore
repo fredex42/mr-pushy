@@ -55,5 +55,5 @@ fabric.properties
 ### Scala template
 *.class
 *.log
-/scripts/authfile.yml
 /scripts/auth.yaml
+*.lst

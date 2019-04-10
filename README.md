@@ -1,4 +1,4 @@
-Upload Flush List (Multi-threaded)
+Upload Flush List (Multi-threaded) - aka Mr Pushy
 ====
 
 This project is a program for emergency use, to quickly "flush" large media files
@@ -21,6 +21,9 @@ separated by Linefeed (LF) characters
 column indicates the filepath
 
 See the samples in `src/test/resources` for examples that are used in testing.
+
+There are scripts in the `scripts/` directory to assist with building these lists, consult the README
+there for more information.
 
 #### Arguments
 You must specify the path to the list of files you want to upload as the only conventional commandline
@@ -53,6 +56,21 @@ configuration.  The default logger outputs to standard out and shows the MtUploa
 See online documentation about configuring logback.xml to understand how to output to a file, adjust logging
 priorities, formats etc.
 
+#### Do Docker?
+
+The app itself can now build as a Docker container, by running `sbt docker:publish` instead of `sbt rpm:packageBin`
+ 
+Once you have built the app, it can then be run in a Docker environment with the following command:
+
+```
+$ docker run --rm -it -v /path/to/pushlist.lst:/mnt/data/pushlist.lst -v /path/to/media:/path/to/media -e JAVA_OPTS="-DdestBucket={bucket} -DreallyDelete={option}..." mr-pushy:{revision} /mnt/data/pushlist.lst
+```
+
+Note that in order for this to work, you need to bind-mount your media path to the SAME path in the container in order
+for the paths in your push list to be accurate.
+
+The "arguments" are the same as above, but must be specified in the `JAVA_OPTS` environment variable as above.
+
 Compilation
 ---
 This project uses `sbt` and the SBT Universal Packaging plugin to make your life easier.
@@ -64,7 +82,14 @@ $ sbt rpm:packageBin
 to download all necessary requirements, compile, link and make an RPM of the products.
 Other packageBin options from Universal Packager should work but are untested.
 
+Alternatively, run:
+``` 
+$ sbt -Ddocker.username={yourname} [-Ddocker.host={yourrepo}] [-Dbuild.number={revision}] docker:publish
+```
+to publish as a Docker container to your local repository
+
 #### Do Docker?
+
 If you have Docker installed, then you can use the `Dockerfile` in the `.circleci` directory
 to quickly make an environment suitable for compiling, building and running the program.
 

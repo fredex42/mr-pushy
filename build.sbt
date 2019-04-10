@@ -1,4 +1,8 @@
 import com.typesafe.sbt.packager.rpm.RpmPlugin.autoImport.rpmLicense
+import com.typesafe.sbt.packager.docker
+import com.typesafe.sbt.packager.docker._
+import sbt._
+import Keys._
 
 name := "upload_flush_list_mt"
 
@@ -34,11 +38,23 @@ rpmVendor := "theguardian"
 rpmLicense := Some("GPLv3")
 
 lazy val app = (project in file("."))
-  .enablePlugins(JavaServerAppPackaging, RpmPlugin)
+  .enablePlugins(JavaServerAppPackaging, RpmPlugin, AshScriptPlugin, DockerPlugin)
   .settings(
     version in Rpm := version.value,
     rpmRelease := sys.env.getOrElse("CIRCLE_BUILD_NUM","SNAPSHOT"),
-    mainClass in Compile := Some("Main")
+    mainClass in Compile := Some("Main"),
+    dockerUsername  := sys.props.get("docker.username"),
+    dockerRepository := sys.props.get("docker.host"),
+    dockerPermissionStrategy := DockerPermissionStrategy.None,
+    packageName in Docker := s"${sys.props.get("docker.username")}/mrpushy",
+    packageName := "mrpushy",
+    //    dockerBaseImage := "openjdk:8-jdk-alpine",
+    dockerAlias := docker.DockerAlias(sys.props.get("docker.host"),sys.props.get("docker.username"),"mr-pushy",Some(sys.props.getOrElse("build.number","DEV"))),
+    dockerCommands ++= Seq(
+      Cmd("USER", "root"),
+      Cmd("RUN", "chown -R 1001 /opt/docker"),
+      Cmd("USER", "demiourgos728")
+    )
   )
 
 
