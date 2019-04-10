@@ -7,13 +7,14 @@ defaults: &defaults
     JVM_OPTS: -Xmx3200m
     TERM: dumb
   docker:
-    - image: andyg42/generic-centos-sbt:3
+    - image: andyg42/generic-centos-sbt:4
 
 version: 2
 jobs:
   build_and_test:
     <<: *defaults
     steps:
+    - setup_remote_docker
     - checkout
     - restore_cache:
         keys:
