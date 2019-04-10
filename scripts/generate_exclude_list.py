@@ -124,6 +124,32 @@ def lookup_paths(projecturl):
         raise InvalidPlutoType(pathparts[-3])
 
 
+def find_sensitive_projects():
+    xmldoc = """<ItemSearchDocument xmlns="http://xml.vidispine.com/schema/vidispine">
+	<field>
+		<name>gnm_storage_rule_sensitive</name>
+		<value>storage_rule_sensitive</value>
+	</field>
+	<field>
+		<name>gnm_type</name>
+		<value>project</value>
+	</field>
+</ItemSearchDocument>"""
+
+    response = requests.put("http://{host}:{port}/API/search".format(proto=args.proto, host=args.host, port=args.vsport),
+                            data=xmldoc,
+                            headers={'Accept': 'application/json', 'Content-Type': 'application/xml'},
+                            auth=(auth['user'], auth['passwd'])
+                            )
+    if response.status_code==200:
+        data = response.json()
+        logger.info("Found {0} potential sensitive projects".format(data["hits"]))
+        project_list = list(map(lambda entry: entry["id"], filter(lambda entry: entry["type"]=="Collection", data["entry"])))
+        logger.info("Count after filter: {0}".format(len(project_list)))
+        return project_list
+    else:
+        raise HttpError(response.text)
+
 def read_authfile(authfile):
     with open(authfile, "r") as f:
         return yaml.load(f.read())
@@ -134,6 +160,8 @@ parser.add_argument("--file", dest='sourcefile', help="CSV spreadsheet to read")
 parser.add_argument("--column", dest='col_index', help="Zero-based index of the column that contains URLs", default=2)
 parser.add_argument("--proto", dest='proto', help="Specify http or https protocol", default="https")
 parser.add_argument("--host", dest='host', help="Host that pluto is running on", default="localhost")
+parser.add_argument("--vsport", dest='vsport', help="Port that Vidispine is running on", default=8080)
+parser.add_argument("--skip-sensitive", dest='skip_sensitive', help="Don't scan for 'sensitive' projects to add to the list", action="store_true", default=False)
 parser.add_argument("--authfile", dest='authfile', default="auth.yaml")
 parser.add_argument("--output", dest='outputfile', default='excludepaths.lst')
 args = parser.parse_args()
@@ -144,9 +172,21 @@ for entry in load_file(args.sourcefile, int(args.col_index)):
     logger.info("Got {0}".format(entry))
     try:
         exclude_list.append(lookup_paths(entry))
-        logger.debug(exclude_list)
+        #logger.debug(exclude_list)
     except InvalidVidispineID as e:
         logger.error("Invalid vidispine ID: {0}".format(str(e)))
+
+logger.info("Completed list")
+
+if not args.skip_sensitive:
+    extra_project_list = find_sensitive_projects()
+    for projectid in extra_project_list:
+        try:
+            exclude_list.append(lookup_project_assetfolder(projectid))
+        except InvalidVidispineID as e:
+            logger.error("Invalid vidispine ID: {0}".format(str(e)))
+        except AssetFolderNotFound as e:
+            logger.warning("No asset folder found for {0}".format(str(e)))
 
 with open(args.outputfile, "w") as fout:
     for entry in exclude_list:
