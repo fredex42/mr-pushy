@@ -56,7 +56,7 @@ def lookup_project_assetfolder(project_id):
     """
     url = u"{proto}://{host}/gnm_asset_folder/lookup/{id}".format(proto=args.proto, host=args.host, id=project_id)
 
-    response = requests.get(url, auth=(auth['user'], auth['passwd']), headers={'Accept': 'application/json'}, verify=False)
+    response = requests.get(url, auth=(auth['user'], auth['password']), headers={'Accept': 'application/json'}, verify=False)
     if response.status_code == 404:
         raise AssetFolderNotFound(project_id)
     elif response.status_code == 200:
@@ -74,7 +74,7 @@ def lookup_commission_basepath(commission_id):
     """
     url = u"{proto}://{host}/project/api/commission/{id}/".format(proto=args.proto, host=args.host, id=commission_id)
 
-    response = requests.get(url, auth=(auth['user'], auth['passwd']), headers={'Accept': 'application/json'}, verify=False)
+    response = requests.get(url, auth=(auth['user'], auth['password']), headers={'Accept': 'application/json'}, verify=False)
     if response.status_code == 200:
         data = response.json()
         if len(data['aaData'])==0:
@@ -139,7 +139,7 @@ def find_sensitive_projects():
     response = requests.put("http://{host}:{port}/API/search".format(proto=args.proto, host=args.host, port=args.vsport),
                             data=xmldoc,
                             headers={'Accept': 'application/json', 'Content-Type': 'application/xml'},
-                            auth=(auth['user'], auth['passwd'])
+                            auth=(auth['user'], auth['password'])
                             )
     if response.status_code==200:
         data = response.json()

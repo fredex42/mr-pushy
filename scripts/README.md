@@ -17,7 +17,7 @@ export, that contains one column of Pluto URLs.
 First, you need to create a simple YAML file with your credentials:
 ```
 user: {your-username}
-passwd: {your-password}
+password: {your-password}
 ```
 save this as auth.yaml.
 

@@ -44,7 +44,7 @@ jobs:
     ### deployment
     - run: cat /dev/null | sbt rpm:packageBin
     - run: aws s3 cp target/rpm/RPMS/noarch/mrpushy-1.0.0-${CIRCLE_BUILD_NUM}.noarch.rpm s3://gnm-multimedia-deployables/upload_flush_list/${CIRCLE_BUILD_NUM}/mrpushy.noarch.rpm
-    - run: echo ${DOCKER_PASSWD} | docker login -u ${DOCKER_USER} && cat /dev/null | sbt -Dbuild.number=${CIRCLE_BUILD_NUM} -Ddocker.username=guardianmultimedia docker:publish
+    - run: docker login -u ${DOCKER_USER} -p ${DOCKER_PASSWD} && sbt -Dbuild.number=${CIRCLE_BUILD_NUM} -Ddocker.username=guardianmultimedia docker:publish
 workflows:
   version: 2
   build_and_test:
