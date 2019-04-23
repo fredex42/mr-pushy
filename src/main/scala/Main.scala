@@ -133,6 +133,9 @@ object Main extends App {
         zeroLengthCounter+=1
         if(!hideNotFound) logger.warn(s"$filePath is zero length, skipping")
         false
+      } else if(fileref.getName.startsWith(".")){
+        logger.info(s"Not uploading dot-file $filePath")
+        false
       } else {
         n+=1
         uploader.kickoff_upload(filePath, uploadExecContext).map(uploadResult => {

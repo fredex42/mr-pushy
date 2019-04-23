@@ -66,9 +66,25 @@ def lookup_project_assetfolder(project_id):
         raise HttpError(response.text)
 
 
+def safe_lookup_subproject(infolist, commission_id):
+    """
+    Helper function to handle exceptions when iterating the list of projects from a commission
+    :param infolist: information on commission contents as returned from pluto ajax api
+    :return: either the commission base path or None
+    """
+    project_id=infolist[7]
+    try:
+        return remove_last_part(lookup_project_assetfolder(project_id))
+    except AssetFolderNotFound as e:
+        logger.warning("No asset folder found for project {0} in commission {1}".format(project_id, commission_id))
+        return None
+
+
 def lookup_commission_basepath(commission_id):
     """
-    ask pluto for the commission base path of the given commission
+    ask pluto for the commission base path of the given commission.
+    this will return a list of all the basepaths of the projects contained within; on occasion the projects were moved from
+    elsewhere and their basepaths do not correspond.
     :param commission_id: commission ID to look up
     :return: asset folder basepath as provided by Pluto
     """
@@ -81,13 +97,10 @@ def lookup_commission_basepath(commission_id):
             logger.warning("Commission {0} has no projects".format(commission_id))
             raise AssetFolderNotFound(commission_id)
         else:
-            for infolist in data['aaData']:
-                project_id=infolist[7]
-                try:
-                    return remove_last_part(lookup_project_assetfolder(project_id))
-                except AssetFolderNotFound as e:
-                    logger.warning("No asset folder found for project {0} in commission {1}".format(project_id, commission_id))
-            raise AssetFolderNotFound("No asset folders found for commission {0}".format(commission_id))
+            raw_list = map(lambda infolist: safe_lookup_subproject(infolist, commission_id), data['aaData'])
+            nonempty_list = filter(lambda entry: entry is not None, raw_list)
+            deduped_list = list(set(nonempty_list))
+            return deduped_list
     else:
         raise HttpError(response.text)
 
@@ -107,7 +120,7 @@ def lookup_paths(projecturl):
     """
     parse out the URL then ask Pluto what asset folders this corresponds to
     :param projecturl: project URL
-    :return: either project asset folder or commission base asset folder. Raises InvalidVidispineID or InvalidPlutoType.
+    :return: either project asset folder or LIST of commission base asset folder. Raises InvalidVidispineID or InvalidPlutoType.
     """
     urlparts = urllib.parse.urlparse(projecturl)
 
@@ -171,7 +184,11 @@ exclude_list = []
 for entry in load_file(args.sourcefile, int(args.col_index)):
     logger.info("Got {0}".format(entry))
     try:
-        exclude_list.append(lookup_paths(entry))
+        new_paths = lookup_paths(entry)
+        if isinstance(new_paths, list):
+            exclude_list = exclude_list + new_paths
+        else:
+            exclude_list.append(new_paths)
         #logger.debug(exclude_list)
     except InvalidVidispineID as e:
         logger.error("Invalid vidispine ID: {0}".format(str(e)))

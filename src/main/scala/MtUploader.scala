@@ -19,7 +19,7 @@ class MtUploader (bucketName: String, removePathSegments: Int, chunkSize:Long = 
 
   def kickoff_single_upload(toUpload:File, uploadPath:String)(implicit client:AmazonS3, exec:ExecutionContext):Future[PutObjectResult] = Future {
     logger.info(s"${toUpload.getCanonicalPath}: Starting single-hit upload")
-    val putRequest = new PutObjectRequest(bucketName, uploadPath, toUpload)
+    val putRequest = new PutObjectRequest(bucketName, uploadPath, toUpload).withStorageClass(storageClass)
     val result=client.putObject(putRequest)
     logger.info(s"${toUpload.getCanonicalPath}: Finished single-hit upload")
     result
