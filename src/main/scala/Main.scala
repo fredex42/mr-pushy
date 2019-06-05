@@ -133,7 +133,10 @@ object Main extends App {
         true
     }
 
-    lazy val pathPrefix = Option(System.getProperty("pathPrefix"))
+    lazy val pathPrefix = Option(System.getProperty("pathPrefix")) match {
+      case pxf @ Some(_)=>pxf
+      case None=>Option(System.getenv("pathPrefix"))
+    }
 
     lazy val storageClass:StorageClass = System.getProperty("storageClass") match {
       case null=>StorageClass.StandardInfrequentAccess

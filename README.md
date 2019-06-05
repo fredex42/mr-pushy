@@ -44,6 +44,7 @@ Otherwise treat the run as a test and don't delete anything.
 (by default, `~/.aws/config`) will be used.
 - **pathPrefix** (string, default not set) - Set this if you want to upload files to somewhere other than the root 
 of the bucket. Don't include a leading /.  (e.g., setting to "My Media" will upload to `s3://{destBucket}/My Media/...`)
+This can be specified as an environment variable to get around issues with -D arguments with spaces.
 - **stripPathSegments** (number; default 5) - remove this number of segments from the local path to generate
 the remote path.  For example, if the local path is `/mnt/media_volume/my_project/files/card01/file.mxf` and
 **stripPathSegments** is set to `2`, then the remote path will be
