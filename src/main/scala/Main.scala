@@ -8,6 +8,7 @@ import java.util.concurrent.Executors
 
 import com.amazonaws.ClientConfiguration
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain
+import com.amazonaws.services.s3.model.StorageClass
 
 import scala.util.{Failure, Success}
 
@@ -97,6 +98,11 @@ object Main extends App {
         true
     }
 
+    lazy val storageClass:StorageClass = System.getProperty("storageClass") match {
+      case null=>StorageClass.StandardInfrequentAccess
+      case str:String =>StorageClass.fromValue(str)
+    }
+
     logger.info("========================================================================")
     logger.info("New run starting")
     logger.info("========================================================================")
@@ -104,10 +110,11 @@ object Main extends App {
     logger.info(s"Uploading to $destBucket")
     logger.info(s"Really delete is $reallyDelete")
     logger.info(s"noProjects is set to $noProjects")
+    logger.info(s"Storage class is $storageClass")
 
     val lp = new ListParser(listFileName, noProjects)
 
-    val uploader = new MtUploader(destBucket, pathSegments, chunkSize)
+    val uploader = new MtUploader(destBucket, pathSegments, chunkSize, storageClass)
 
     var notFoundCounter=0
     var zeroLengthCounter=0
@@ -125,6 +132,9 @@ object Main extends App {
       } else if(fileref.length()==0) {
         zeroLengthCounter+=1
         if(!hideNotFound) logger.warn(s"$filePath is zero length, skipping")
+        false
+      } else if(fileref.getName.startsWith(".")){
+        logger.info(s"Not uploading dot-file $filePath")
         false
       } else {
         n+=1

@@ -10,7 +10,7 @@ import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 import scala.concurrent.duration._
 
-class MtUploader (bucketName: String, removePathSegments: Int, chunkSize:Long = 8*1024*1024){
+class MtUploader (bucketName: String, removePathSegments: Int, chunkSize:Long = 8*1024*1024, storageClass: StorageClass){
   val logger = LoggerFactory.getLogger(getClass)
 
   def getUploadPath(str: String):String = {
@@ -19,7 +19,7 @@ class MtUploader (bucketName: String, removePathSegments: Int, chunkSize:Long = 
 
   def kickoff_single_upload(toUpload:File, uploadPath:String)(implicit client:AmazonS3, exec:ExecutionContext):Future[PutObjectResult] = Future {
     logger.info(s"${toUpload.getCanonicalPath}: Starting single-hit upload")
-    val putRequest = new PutObjectRequest(bucketName, uploadPath, toUpload)
+    val putRequest = new PutObjectRequest(bucketName, uploadPath, toUpload).withStorageClass(storageClass)
     val result=client.putObject(putRequest)
     logger.info(s"${toUpload.getCanonicalPath}: Finished single-hit upload")
     result
@@ -73,7 +73,7 @@ class MtUploader (bucketName: String, removePathSegments: Int, chunkSize:Long = 
       uploadFuture.map(result=>UploadResult(UploadResultType.Single,uploadPath, Some(result),None))
     } else {
       logger.info(s"${f.getCanonicalPath}: Starting multipart upload")
-      val mpRequest = new InitiateMultipartUploadRequest(bucketName, uploadPath)
+      val mpRequest = new InitiateMultipartUploadRequest(bucketName, uploadPath).withStorageClass(storageClass)
       val mpResponse = client.initiateMultipartUpload(mpRequest)
 
       val uploadFuture = kickoff_mt_upload(f, uploadPath, mpResponse.getUploadId)(client, uploadExecContext)
