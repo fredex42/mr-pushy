@@ -73,7 +73,23 @@ object Main extends App {
     clientConfg.setMaxConnections(uploadThreads)
     clientConfg.setRequestTimeout(120000)
     clientConfg.setUseReaper(true)
-    lazy implicit val s3conn: AmazonS3 = AmazonS3ClientBuilder.standard().withClientConfiguration(clientConfg).build()
+
+
+    def getS3Client:AmazonS3 = {
+      val clientBuilder = AmazonS3ClientBuilder
+        .standard()
+      val clientBuilderWithRegion = System.getProperty("region") match {
+        case null =>
+          clientBuilder
+        case regionName:String=>
+          clientBuilder.withRegion(regionName)
+      }
+      clientBuilderWithRegion
+        .withClientConfiguration(clientConfg)
+        .build()
+    }
+
+    lazy implicit val s3conn: AmazonS3 = getS3Client
 
     lazy val destBucket = System.getProperty("destBucket")
     if (destBucket == null) {
