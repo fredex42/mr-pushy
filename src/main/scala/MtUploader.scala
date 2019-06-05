@@ -118,7 +118,7 @@ class MtUploader (bucketName: String, removePathSegments: Int, chunkSize:Long = 
 
   }
 
-  def kickoff_upload(filePath: String, uploadExecContext: ExecutionContext)(implicit client:AmazonS3,  exec:ExecutionContext):Future[UploadResult] = {
+  def kickoff_upload(filePath: String, dryRun:Boolean, uploadExecContext: ExecutionContext)(implicit client:AmazonS3,  exec:ExecutionContext):Future[UploadResult] = {
     val f:File = new File(filePath)
     val uploadPath = getUploadPath(f.getAbsolutePath)
     logger.debug(s"$filePath: kickoff to $uploadPath")
@@ -130,7 +130,11 @@ class MtUploader (bucketName: String, removePathSegments: Int, chunkSize:Long = 
       case ex:AmazonS3Exception=>
         if(ex.getMessage.contains("404 Not Found")) {
           logger.debug(s"s3://$bucketName/$uploadPath does not currently exist, proceeding to upload")
-          internal_do_upload(f, uploadPath, uploadExecContext)
+          if(!dryRun){
+            internal_do_upload(f, uploadPath, uploadExecContext)
+          } else {
+            Future(UploadResult(UploadResultType.DryRun, uploadPath, None, None))
+          }
         } else {
           logger.error(s"S3 error ${ex.getErrorCode}: ${ex.getMessage} ${ex.getAdditionalDetails} ${ex.getErrorResponseXml}")
           throw ex

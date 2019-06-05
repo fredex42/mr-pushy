@@ -32,7 +32,10 @@ argument.  The program will exit if you don't do this.
 Runtime parameters are specified as system properties.  They can be specified on the
 commandline using the standard -Dparameter=value syntax:
 
-- **maxThreads** (number; default 48) - maximum number of threads to use for upload.
+- **uploadThreads** (number; default 8) - maximum number of threads to use for upload.  A static threadpool of this 
+size is created at startup.
+- **verifyThreads** (number; default 36) - maximum number of threads to use for checksum verification.  A static 
+threadpool of this size is created at startup.
 - **reallyDelete** (boolean; default false) - if set to any string, delete files from local storage.
 Otherwise treat the run as a test and don't delete anything.
 - **limit** (number; default not set) - if set, stop after this many files. Used for testing.
