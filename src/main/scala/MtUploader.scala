@@ -13,8 +13,20 @@ import scala.concurrent.duration._
 class MtUploader (bucketName: String, removePathSegments: Int, chunkSize:Long = 8*1024*1024, storageClass: StorageClass){
   val logger = LoggerFactory.getLogger(getClass)
 
-  def getUploadPath(str: String):String = {
-    str.split("/").drop(removePathSegments).mkString("/")
+  /**
+    * determine the correct path to upload a file
+    * @param str absolute path of the file
+    * @param prefix an Option, which if set contains a base path to prepend to the final file path
+    * @return S3 suitable filepath (i.e., no leading /)
+    */
+  def getUploadPath(str: String,prefix:Option[String]):String = {
+    val prefixParts = prefix match {
+      case None=>Array[String]()
+      case Some(prefixString)=>prefixString.split("/")
+    }
+    val pathParts = str.split("/").drop(removePathSegments)
+
+    (prefixParts ++ pathParts).mkString("/")
   }
 
   def kickoff_single_upload(toUpload:File, uploadPath:String)(implicit client:AmazonS3, exec:ExecutionContext):Future[PutObjectResult] = Future {
@@ -118,9 +130,9 @@ class MtUploader (bucketName: String, removePathSegments: Int, chunkSize:Long = 
 
   }
 
-  def kickoff_upload(filePath: String, dryRun:Boolean, uploadExecContext: ExecutionContext)(implicit client:AmazonS3,  exec:ExecutionContext):Future[UploadResult] = {
+  def kickoff_upload(filePath: String, pathPrefix:Option[String], dryRun:Boolean, uploadExecContext: ExecutionContext)(implicit client:AmazonS3,  exec:ExecutionContext):Future[UploadResult] = {
     val f:File = new File(filePath)
-    val uploadPath = getUploadPath(f.getAbsolutePath)
+    val uploadPath = getUploadPath(f.getAbsolutePath, pathPrefix)
     logger.debug(s"$filePath: kickoff to $uploadPath")
     try {
       client.getObjectMetadata(bucketName, uploadPath)
@@ -142,7 +154,7 @@ class MtUploader (bucketName: String, removePathSegments: Int, chunkSize:Long = 
     }
   }
 
-  def delete_failed_upload(filePath:String)(implicit  client:AmazonS3, exec: ExecutionContext):Try[Unit] = {
-    Try { client.deleteObject(bucketName, getUploadPath(filePath)) }
+  def delete_failed_upload(filePath:String, pathPrefix:Option[String])(implicit  client:AmazonS3, exec: ExecutionContext):Try[Unit] = {
+    Try { client.deleteObject(bucketName, getUploadPath(filePath, pathPrefix)) }
   }
 }

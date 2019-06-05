@@ -133,6 +133,8 @@ object Main extends App {
         true
     }
 
+    lazy val pathPrefix = Option(System.getProperty("pathPrefix"))
+
     lazy val storageClass:StorageClass = System.getProperty("storageClass") match {
       case null=>StorageClass.StandardInfrequentAccess
       case str:String =>StorageClass.fromValue(str)
@@ -175,7 +177,7 @@ object Main extends App {
         false
       } else {
         n+=1
-        uploader.kickoff_upload(filePath, dryRun, uploadExecContext).map(uploadResult => {
+        uploader.kickoff_upload(filePath, pathPrefix, dryRun, uploadExecContext).map(uploadResult => {
           if(uploadResult.uploadType==UploadResultType.AlreadyThere) alreadyUploadedCounter+=1
           val uploadVerb = uploadResult.uploadType match {
             case UploadResultType.AlreadyThere=>"already present"
@@ -198,7 +200,7 @@ object Main extends App {
                 case false =>
                   failedCounter += 1
                   logger.warn(s"$filePath: UPLOAD FAILED, removing remote path")
-                  uploader.delete_failed_upload(filePath) match {
+                  uploader.delete_failed_upload(filePath, pathPrefix) match {
                     case Success(u) =>
                       logger.debug(s"$filePath: remote file deleted")
                     case Failure(err) =>
