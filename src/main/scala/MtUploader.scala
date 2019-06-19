@@ -47,8 +47,28 @@ class MtUploader (bucketName: String, removePathSegments: Int, chunkSize:Long = 
       .withFileOffset(fileOffset)
       .withPartNumber(partNumber+1)
       .withPartSize(thisChunkSize)
-    client.uploadPart(rq)
-  }
+
+    def uploadWithRetry(attempt:Int=0):Try[UploadPartResult] = {
+      val t = Try { client.uploadPart(rq) }
+      t match {
+        case Failure(err)=>
+          logger.warn(s"Can't upload part: ", err)
+          Thread.sleep(500)
+          if(attempt>10){
+            logger.error(s"Failed 10 times, aborting")
+            throw err
+          } else {
+            uploadWithRetry(attempt + 1)
+          }
+        case s @Success(_)=>s
+      }
+    }
+
+      uploadWithRetry() match {
+        case Success(r)=>r
+        case Failure(err)=>throw err  //this gets "caught" by the future and returned as a failure.
+      }
+    }
 
   /**
     * intiates a multipart upload request and kicks off Futures to upload each part
@@ -130,7 +150,7 @@ class MtUploader (bucketName: String, removePathSegments: Int, chunkSize:Long = 
 
   }
 
-  def kickoff_upload(filePath: String, pathPrefix:Option[String], dryRun:Boolean, uploadExecContext: ExecutionContext)(implicit client:AmazonS3,  exec:ExecutionContext):Future[UploadResult] = {
+  def kickoff_upload(filePath: String, pathPrefix:Option[String], dryRun:Boolean, uploadExecContext: ExecutionContext, attempt:Int=0)(implicit client:AmazonS3,  exec:ExecutionContext):Future[UploadResult] = {
     val f:File = new File(filePath)
     val uploadPath = getUploadPath(f.getAbsolutePath, pathPrefix)
     logger.debug(s"$filePath: kickoff to $uploadPath")
@@ -148,8 +168,13 @@ class MtUploader (bucketName: String, removePathSegments: Int, chunkSize:Long = 
             Future(UploadResult(UploadResultType.DryRun, uploadPath, None, None))
           }
         } else {
-          logger.error(s"S3 error ${ex.getErrorCode}: ${ex.getMessage} ${ex.getAdditionalDetails} ${ex.getErrorResponseXml}")
-          throw ex
+          logger.warn(s"S3 error ${ex.getErrorCode}: ${ex.getMessage} ${ex.getAdditionalDetails} ${ex.getErrorResponseXml}")
+          if(attempt>10) {
+            logger.error(s"Operation errored 10 times, aborting")
+            throw ex
+          } else {
+            kickoff_upload(filePath, pathPrefix, dryRun, uploadExecContext, attempt+1)
+          }
         }
     }
   }
