@@ -18,12 +18,12 @@ object Main extends App {
     the default thread pool uses daemon threads which don't hold us open until they complete.
     we want regular threads that do.
      */
-    import com.amazonaws.metrics.AwsSdkMetrics
-    AwsSdkMetrics.enableDefaultMetrics
-
-    AwsSdkMetrics.setCredentialProvider(new DefaultAWSCredentialsProviderChain())
-
-    AwsSdkMetrics.setMetricNameSpace("UploadFlushList")
+//    import com.amazonaws.metrics.AwsSdkMetrics
+//    AwsSdkMetrics.enableDefaultMetrics
+//
+//    AwsSdkMetrics.setCredentialProvider(new DefaultAWSCredentialsProviderChain())
+//
+//    AwsSdkMetrics.setMetricNameSpace("UploadFlushList")
 
     val listFileName = args.headOption match {
       case None=>
