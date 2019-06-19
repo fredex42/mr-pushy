@@ -46,6 +46,8 @@ object Main extends App {
         str.toInt
     }
 
+    lazy val delayBetweenChunks = Option(System.getProperty("delayBetweenChunks")).map(_.toInt)
+
     System.getProperty("maxThreads") match {
       case null =>
       case str: String =>
@@ -180,7 +182,7 @@ object Main extends App {
         false
       } else {
         n+=1
-        uploader.kickoff_upload(filePath, pathPrefix, dryRun, uploadExecContext).map(uploadResult => {
+        uploader.kickoff_upload(filePath, pathPrefix, dryRun, uploadExecContext, delayBetweenChunks = delayBetweenChunks).map(uploadResult => {
           if(uploadResult.uploadType==UploadResultType.AlreadyThere) alreadyUploadedCounter+=1
           val uploadVerb = uploadResult.uploadType match {
             case UploadResultType.AlreadyThere=>"already present"
