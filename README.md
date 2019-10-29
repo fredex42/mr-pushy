@@ -32,11 +32,19 @@ argument.  The program will exit if you don't do this.
 Runtime parameters are specified as system properties.  They can be specified on the
 commandline using the standard -Dparameter=value syntax:
 
-- **maxThreads** (number; default 48) - maximum number of threads to use for upload.
+- **uploadThreads** (number; default 8) - maximum number of threads to use for upload.  A static threadpool of this 
+size is created at startup.
+- **verifyThreads** (number; default 36) - maximum number of threads to use for checksum verification.  A static 
+threadpool of this size is created at startup.
 - **reallyDelete** (boolean; default false) - if set to any string, delete files from local storage.
 Otherwise treat the run as a test and don't delete anything.
 - **limit** (number; default not set) - if set, stop after this many files. Used for testing.
 - **destBucket** (string; must be set) - upload to this S3 bucket
+- **region** (string; default not set) - S3 region to work in. If not set, the default for the AWS SDK 
+(by default, `~/.aws/config`) will be used.
+- **pathPrefix** (string, default not set) - Set this if you want to upload files to somewhere other than the root 
+of the bucket. Don't include a leading /.  (e.g., setting to "My Media" will upload to `s3://{destBucket}/My Media/...`)
+This can be specified as an environment variable to get around issues with -D arguments with spaces.
 - **stripPathSegments** (number; default 5) - remove this number of segments from the local path to generate
 the remote path.  For example, if the local path is `/mnt/media_volume/my_project/files/card01/file.mxf` and
 **stripPathSegments** is set to `2`, then the remote path will be
@@ -47,6 +55,8 @@ and can't be so small that any file has more than 999 chunks.
 Multiple chunks are uploaded in parallel, one per thread.
 - **hideNotFound** (boolean; default false) - By default, a warning is shown if any requested file is not
  found on the local disk.  Setting this parameter to any string hides these warnings.
+- **dryRun** (boolean; default false) - don't actually upload, verify OR delete anything. 
+Just show what would be uploaded to where.
 
 #### Logging
 Logging is carried out by the standard log4j plugin which is configured via the `logback.xml` file.  In order
