@@ -7,7 +7,7 @@ import logging
 import requests
 import re
 import yaml
-from pprint import pprint
+from yaml import SafeLoader
 
 logging.basicConfig(level=logging.WARN)
 logger = logging.getLogger(__name__)
@@ -58,6 +58,7 @@ def lookup_project_assetfolder(project_id):
 
     response = requests.get(url, auth=(auth['user'], auth['password']), headers={'Accept': 'application/json'}, verify=False)
     if response.status_code == 404:
+        logger.warning("404 Not found, asset folder check URL is {0}".format(url))
         raise AssetFolderNotFound(project_id)
     elif response.status_code == 200:
         content = response.json()
@@ -149,7 +150,7 @@ def find_sensitive_projects():
 	</field>
 </ItemSearchDocument>"""
 
-    response = requests.put("http://{host}:{port}/API/search".format(proto=args.proto, host=args.host, port=args.vsport),
+    response = requests.put("{0}/API/search".format(args.vsurl),
                             data=xmldoc,
                             headers={'Accept': 'application/json', 'Content-Type': 'application/xml'},
                             auth=(auth['user'], auth['password'])
@@ -163,17 +164,19 @@ def find_sensitive_projects():
     else:
         raise HttpError(response.text)
 
+
 def read_authfile(authfile):
     with open(authfile, "r") as f:
-        return yaml.load(f.read())
+        return yaml.load(f.read(), Loader=SafeLoader)
 
 
+### START MAIN
 parser = argparse.ArgumentParser()
 parser.add_argument("--file", dest='sourcefile', help="CSV spreadsheet to read")
 parser.add_argument("--column", dest='col_index', help="Zero-based index of the column that contains URLs", default=2)
 parser.add_argument("--proto", dest='proto', help="Specify http or https protocol", default="https")
 parser.add_argument("--host", dest='host', help="Host that pluto is running on", default="localhost")
-parser.add_argument("--vsport", dest='vsport', help="Port that Vidispine is running on", default=8080)
+parser.add_argument("--vsurl", dest='vsurl', help="URL to access Vidispine", default="https://localhost:8080")
 parser.add_argument("--skip-sensitive", dest='skip_sensitive', help="Don't scan for 'sensitive' projects to add to the list", action="store_true", default=False)
 parser.add_argument("--authfile", dest='authfile', default="auth.yaml")
 parser.add_argument("--output", dest='outputfile', default='excludepaths.lst')
@@ -196,6 +199,7 @@ for entry in load_file(args.sourcefile, int(args.col_index)):
 logger.info("Completed list")
 
 if not args.skip_sensitive:
+    logger.info("Adding sensitive projects (from VS records)")
     extra_project_list = find_sensitive_projects()
     for projectid in extra_project_list:
         try:

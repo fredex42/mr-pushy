@@ -19,7 +19,6 @@ libraryDependencies ++= Seq(
   // https://mvnrepository.com/artifact/ch.qos.logback/logback-core
   "ch.qos.logback" % "logback-core" % "1.2.3",
   "org.slf4j" % "jcl-over-slf4j" % "1.7.25",
-
   //testing
   // https://mvnrepository.com/artifact/org.specs2/specs2-core
   "org.specs2" %% "specs2-core" % "4.3.2" % Test,

@@ -76,7 +76,6 @@ object Main extends App {
     clientConfg.setRequestTimeout(120000)
     clientConfg.setUseReaper(true)
 
-
     def getS3Client:AmazonS3 = {
       val clientBuilder = AmazonS3ClientBuilder
         .standard()
