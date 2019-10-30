@@ -4,7 +4,7 @@ import com.typesafe.sbt.packager.docker._
 import sbt._
 import Keys._
 
-name := "upload_flush_list_mt"
+name := "mr-pushy"
 
 version := "1.0.0"
 
@@ -52,7 +52,7 @@ lazy val app = (project in file("."))
     dockerCommands ++= Seq(
       Cmd("USER", "root"),
       Cmd("RUN", "chown -R 1001 /opt/docker"),
-      Cmd("USER", "demiourgos728")
+//      Cmd("USER", "demiourgos728")
     )
   )
 
